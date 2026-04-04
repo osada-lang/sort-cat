@@ -1,0 +1,570 @@
+:root {
+    --bg-color: #fce4ec; 
+    --floor-color: #f8bbd0;
+    --tower-bg: #e0e0e0;
+    --tower-border: #8d6e63;
+    --tower-shadow: rgba(78, 52, 46, 0.2);
+    --accent-color: #ff80ab;
+    --text-color: #5d4037;
+    --cat-size: 50px; /* Optimized for the new 72px tower width */
+    --cat-y-offset: 15%;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+body {
+    font-family: 'Rounded Mplus 1c', 'Comic Sans MS', 'Noto Sans JP', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    overflow: hidden;
+    touch-action: manipulation;
+}
+
+#game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100dvh;
+    padding: 0 10px; /* Adjusted padding to prevent overall scroll */
+    background: radial-gradient(circle at center 70%, var(--floor-color) 0%, var(--bg-color) 60%);
+    overflow: hidden; /* Lock the screen */
+}
+
+header {
+    text-align: center;
+    width: 100%;
+    padding: 15px 0 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    position: relative;
+}
+
+#title {
+    font-size: 2.4rem;
+    font-weight: 900;
+    margin-bottom: 2px;
+    text-shadow: 2px 2px 0 #fff, 0 4px 10px rgba(0,0,0,0.05);
+    color: var(--accent-color);
+}
+
+#header-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    margin-top: 5px;
+}
+
+#level-info {
+    font-size: 1.1rem;
+    background: #fff;
+    padding: 6px 18px;
+    border-radius: 25px;
+    box-shadow: 0 4px 10px var(--tube-shadow);
+    font-weight: 900;
+    color: var(--accent-color);
+    border: 2px solid #fff;
+}
+
+.icon-btn {
+    background: #fff;
+    border: 2px solid var(--accent-color);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--accent-color);
+    transition: all 0.1s;
+    pointer-events: auto;
+    line-height:1;
+}
+
+.icon-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--accent-color);
+}
+
+#tube-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px 20px; 
+    padding: 20px 10px;
+    width: 100%;
+    max-width: 450px;
+    align-items: flex-end;
+    flex: 1; 
+    z-index: 100;
+    margin-top: 5px;
+    transition: gap 0.3s ease;
+    
+    /* Scroll Implementation */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    padding-bottom: 40px; /* Space for the last tubes to clear footer shadow */
+}
+
+/* Custom Elegant Scrollbar */
+#tube-container::-webkit-scrollbar {
+    width: 6px;
+}
+#tube-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+#tube-container::-webkit-scrollbar-thumb {
+    background: rgba(136, 14, 79, 0.2);
+    border-radius: 10px;
+}
+#tube-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(136, 14, 79, 0.3);
+}
+
+/* Grid Layout for Tubes */
+#tube-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 25px 10px; 
+    padding: 50px 15px 40px; /* Increased top padding for lift headroom */
+    width: 100%;
+    max-width: 370px; /* Reliable width for 4 columns at 88px */
+    align-items: flex-end;
+    flex: 1; 
+    z-index: 100;
+    margin-top: -15px; /* Offset increased top padding */
+    
+    /* Scroll Implementation */
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable; /* Fixed: 'both' was causing shift */
+    -webkit-overflow-scrolling: touch; 
+    padding-bottom: 40px; 
+}
+
+/* Cat Tower Styles (Compact & Semi-transparent) */
+.tube {
+    position: relative;
+    width: 72px; /* Reduced from 88px for a more balanced mobile UI */
+    aspect-ratio: 267 / 910; 
+    background-image: url('assets/images/cat_tower_v102.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+    z-index: 500;
+    pointer-events: auto !important;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Semi-transparent tower background */
+.tube::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url('assets/images/cat_tower_v102.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    opacity: 0.7; /* Make tower subtle to highlight the cats */
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Static highlight for completed tubes */
+.tube.completed {
+    filter: drop-shadow(0 0 10px gold);
+    transform: scale(1.05);
+}
+
+/* One-time vibration effect */
+.tube.vibrate-once {
+    animation: purr-vibration 1.5s ease-in-out;
+}
+
+@keyframes purr-vibration {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    5% { transform: translate(1.5px, 1.5px) rotate(0.2deg); }
+    10% { transform: translate(-1.5px, -1.5px) rotate(-0.2deg); }
+    15% { transform: translate(1.5px, -1.5px) rotate(0.2deg); }
+    20% { transform: translate(-1.5px, 1.5px) rotate(-0.2deg); }
+    25% { transform: translate(0.8px, 0.8px) rotate(0.1deg); }
+    30% { transform: translate(0, 0) rotate(0deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+/* Base Shadow Effect for Grounding */
+.tube::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    height: 15px;
+    background: var(--tube-shadow);
+    border-radius: 50%;
+    filter: blur(4px);
+    z-index: -1;
+    transition: transform 0.3s ease;
+}
+
+.tube.selected {
+    transform: translateY(-25px) rotateX(0deg) scale(1.1);
+    border-color: var(--accent-color);
+    box-shadow: 0 15px 35px var(--tube-shadow);
+    z-index: 100 !important; /* Ensure selected tube is ALWAYS on top */
+}
+
+.tube.selected::after {
+    transform: translateX(-50%) translateZ(-20px) scale(0.6);
+    opacity: 0.5;
+}
+
+.tube.tilting {
+    transform: translateY(-30px) rotate(45deg);
+    z-index: 100;
+}
+
+.tube.tilting-reverse {
+    transform: translateY(-30px) rotate(-45deg);
+    z-index: 100;
+}
+
+/* Cat Elements */
+.cat {
+    position: absolute;
+    width: var(--cat-size);
+    height: var(--cat-size);
+    left: calc(50% - (var(--cat-size) / 2)); /* Mathematically centered, animation-proof */
+    transform: translateY(var(--cat-y-offset)); /* Vertical offset only, horizontal is fixed via left: calc */
+    background-size: contain; /* Ensure full image (including zZZ) fits without clipping */
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: all 0.3s ease;
+    z-index: 2;
+    background-color: transparent;
+    pointer-events: none !important;
+}
+
+/* Individual level positioning for perfect grounding on tower segments in v11.0 */
+.cat:nth-child(1) { bottom: 3.25%; } /* Bottom-most bed: Perfectly centered above base */
+.cat:nth-child(2) { bottom: 33.0%; } 
+.cat:nth-child(3) { bottom: 59.5%; } 
+.cat:nth-child(4) { bottom: 87.2%; } /* Top-most bed */
+
+/* Specific Patterns */
+.cat-calico { background-image: url('assets/images/cat_calico_tight_v11.png'); }
+.cat-tabby { background-image: url('assets/images/cat_tabby_tight_v11.png'); }
+.cat-tuxedo { background-image: url('assets/images/cat_tuxedo_tight_v11.png'); }
+.cat-siamese { background-image: url('assets/images/cat_siamese_tight_v11.png'); }
+.cat-white { 
+    background-image: url('assets/images/cat_white_centered_v11.png');
+    width: 72px; /* Scale 1024px centered image to match tower width */
+    height: 72px;
+    left: 0;
+    --cat-y-offset: 26%; /* Compensate for image padding to align height */
+}
+.cat-black { background-image: url('assets/images/cat_black_tight_v11.png'); }
+.cat-russian { background-image: url('assets/images/cat_russian_tight_v11.png'); }
+.cat-ginger { background-image: url('assets/images/cat_ginger_tight_v11.png'); }
+.cat-cow { background-image: url('assets/images/cat_cow_tight_v11.png'); }
+.cat-tortie { background-image: url('assets/images/cat_tortie_tight_v11.png'); }
+
+.cat.sleeping {
+    /* Optional: Slight pulse or breathing effect */
+    animation: purr 4s infinite ease-in-out;
+}
+
+.cat.jumping {
+    animation: jump 0.6s ease-in-out infinite;
+}
+
+@keyframes jump {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-40px); }
+}
+
+@keyframes purr {
+    0%, 100% { transform: scale(1) translateY(var(--cat-y-offset)); }
+    50% { transform: scale(1.03) translateY(var(--cat-y-offset)); }
+}
+
+/* Flying Cat Overlay */
+#flying-cat-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.flying-cat {
+    position: absolute;
+    width: var(--cat-size);
+    height: var(--cat-size);
+    background-size: contain;
+    background-repeat: no-repeat;
+    transition: all 0.5s ease-in-out;
+}
+
+/* Footer Buttons */
+footer {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 20px 10px 30px; /* Increased top padding for separation from scroll area */
+    width: 100%;
+    flex-shrink: 0; /* Never collapse footer height */
+    background: transparent;
+    z-index: 1000;
+}
+
+button {
+    background: #fff;
+    border: 2px solid var(--accent-color);
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 900;
+    color: var(--accent-color);
+    box-shadow: 0 5px 0 var(--accent-color);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 var(--accent-color);
+}
+
+#reset-btn, #undo-btn {
+    /* Keep white background but with strong shadow */
+    background: #fff;
+}
+
+/* Premium Style for Add Tube Button */
+#add-tube-btn {
+    background: linear-gradient(135deg, #a5d6a7 0%, #66bb6a 100%);
+    border-color: #43a047;
+    color: #fff;
+    box-shadow: 0 4px 0 #2e7d32;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+#add-tube-btn:active {
+    box-shadow: 0 1px 0 #2e7d32;
+}
+
+#add-tube-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2.5px);
+}
+
+/* Victory Overlay Style */
+.hidden { display: none !important; }
+
+#victory-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(136, 14, 79, 0.4);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
+}
+
+.victory-content {
+    background: #fff;
+    padding: 30px 40px;
+    border-radius: 30px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    transform: scale(1);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.victory-content h2 {
+    color: var(--accent-color);
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.victory-content p {
+    color: var(--text-color);
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* Desktop Scaling & Optimization */
+@media (min-width: 768px) {
+    :root {
+        --cat-size: 64px; /* Proportional increase for desktop v10.0 */
+    }
+    
+    #game-container {
+        padding-top: 30px;
+    }
+
+    .tube {
+        width: 130px; /* Enhanced large desktop size */
+    }
+
+    #tube-container {
+        max-width: 600px; /* Expanded for 130px towers */
+        gap: 40px 15px;
+    }
+
+    #title {
+        font-size: 3.2rem;
+    }
+
+    button {
+        padding: 12px 28px;
+        font-size: 1.1rem;
+    }
+
+    .cat.cat-white {
+        width: 130px; /* Match large tower width on desktop */
+        height: 130px;
+    }
+}
+
+/* Start Screen Premium Styles */
+#start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, var(--bg-color) 0%, var(--floor-color) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5000;
+    transition: opacity 0.5s ease, visibility 0.5s;
+}
+
+.start-content {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    padding: 40px 30px;
+    border-radius: 40px;
+    text-align: center;
+    box-shadow: 0 15px 35px rgba(136, 14, 79, 0.1);
+    max-width: 320px;
+    width: 90%;
+    animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cat-icon-large {
+    font-size: 5rem;
+    margin-bottom: 20px;
+    display: inline-block;
+    animation: bounce 2s infinite ease-in-out;
+}
+
+#start-title {
+    font-size: 3rem;
+    color: var(--accent-color);
+    margin-bottom: 15px;
+    font-weight: 900;
+    text-shadow: 2px 2px 0 #fff;
+}
+
+#start-rules {
+    font-size: 1rem;
+    color: var(--text-color);
+    margin-bottom: 30px;
+    line-height: 1.6;
+    font-weight: 700;
+}
+
+#start-btn-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+}
+
+#start-continue-btn {
+    font-size: 1.4rem;
+    padding: 15px 40px;
+    background: linear-gradient(135deg, #ff80ab 0%, #f06292 100%);
+    color: #fff;
+    border: none;
+    box-shadow: 0 6px 0 #ad1457;
+    width: 100%;
+}
+
+#start-new-btn {
+    font-size: 1.1rem;
+    padding: 12px 30px;
+    background: #fff;
+    color: var(--accent-color);
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 4px 0 var(--accent-color);
+    width: 100%;
+}
+
+#start-continue-btn:active, #start-new-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #ad1457;
+}
+
+#start-new-btn:active {
+    box-shadow: 0 2px 0 var(--accent-color);
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-20px) scale(1.1); }
+}
+
+#start-screen.fade-out {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Cat Transparency Test</title>
+    <style>
+        body { background-color: #333; color: white; font-family: sans-serif; padding: 20px; }
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
+        .test-item { background-color: #000; border: 1px solid #555; padding: 10px; text-align: center; border-radius: 8px; }
+        .test-item.blue { background-color: #0000ff; }
+        .test-item img { width: 100px; height: 100px; display: block; margin: 0 auto 10px; image-rendering: pixelated; }
+        h2 { border-bottom: 2px solid #555; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Cat Transparency Verification</h1>
+    <div class="test-grid">
+        <div class="test-item"><img src="assets/images/cat_black.png">black</div>
+        <div class="test-item"><img src="assets/images/cat_calico.png">calico</div>
+        <div class="test-item"><img src="assets/images/cat_cow.png">cow</div>
+        <div class="test-item"><img src="assets/images/cat_ginger.png">ginger</div>
+        <div class="test-item"><img src="assets/images/cat_russian.png">russian</div>
+        <div class="test-item"><img src="assets/images/cat_siamese.png">siamese</div>
+        <div class="test-item"><img src="assets/images/cat_tabby.png">tabby</div>
+        <div class="test-item"><img src="assets/images/cat_tortie.png">tortie</div>
+        <div class="test-item"><img src="assets/images/cat_tuxedo.png">tuxedo</div>
+        <div class="test-item"><img src="assets/images/cat_white.png">white</div>
+    </div>
+</body>
+</html>

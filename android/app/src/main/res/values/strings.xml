@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Sort Cat</string>
-    <string name="title_activity_main">Sort Cat</string>
-    <string name="package_name">com.osada.sortcat</string>
-    <string name="custom_url_scheme">com.osada.sortcat</string>
+    <string name="app_name">ねこぞろえ</string>
+    <string name="title_activity_main">ねこぞろえ</string>
+    <string name="package_name">com.jirachi.nekozoroe</string>
+    <string name="custom_url_scheme">com.jirachi.nekozoroe</string>
 </resources>

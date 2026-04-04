@@ -56,8 +56,8 @@ const SAVE_KEY = 'nekozoroe_level_v1';
 
 // AdMob Configuration (Real IDs from user)
 const ADMOB_CONFIG = {
-    appId: "ca-app-pub-9138341481603997~7694100910",
-    rewardedId: "ca-app-pub-9138341481603997/1609307785"
+    appId: "ca-app-pub-9138341481603997~6409773553",
+    rewardedId: "ca-app-pub-9138341481603997/4138104480"
 };
 
 console.log("GameState Initialized");

@@ -1,4 +1,4 @@
-package com.osada.sortcat;
+package com.jirachi.nekozoroe;
 
 import com.getcapacitor.BridgeActivity;
 

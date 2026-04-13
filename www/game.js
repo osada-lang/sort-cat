@@ -34,7 +34,7 @@ let gameState = {
     tubes: [],
     initialTubes: [],
     selectedTubeIndex: null,
-    isAnimating: false,
+    animatingCount: 0, // 進行中のアニメーション数
     history: [],
     isMuted: false,
     bgmStarted: false,
@@ -94,9 +94,10 @@ function renderTubes() {
 }
 
 function handleTubeClick(index) {
-    if (gameState.isTransitioning || gameState.isAnimating) return;
+    if (gameState.isTransitioning) return;
 
     if (gameState.selectedTubeIndex === null) {
+        // 現在のアニメーションにかかわらず、現在のチューブの状態（中身）を見て選択
         if (gameState.tubes[index].length > 0) {
             gameState.selectedTubeIndex = index;
             renderTubes();
@@ -107,8 +108,10 @@ function handleTubeClick(index) {
             renderTubes();
         } else {
             const count = getMoveableCount(gameState.selectedTubeIndex, index);
-            if (count > 0) executeMove(gameState.selectedTubeIndex, index, count);
-            else if (gameState.tubes[index].length > 0) {
+            if (count > 0) {
+                executeMove(gameState.selectedTubeIndex, index, count);
+            } else if (gameState.tubes[index].length > 0) {
+                // 移動できない場合、クリックしたチューブを選択状態にする
                 gameState.selectedTubeIndex = index;
                 renderTubes();
             }
@@ -130,24 +133,34 @@ function getMoveableCount(fromIndex, toIndex) {
 }
 
 async function executeMove(fromIndex, toIndex, count) {
-    gameState.isAnimating = true;
+    gameState.animatingCount++;
+    // 移動開始時に即座にデータを更新し、履歴に保存
     gameState.history.push(JSON.parse(JSON.stringify(gameState.tubes)));
+    
     const fromTubeEl = document.querySelectorAll('.tube')[fromIndex];
     const toTubeEl = document.querySelectorAll('.tube')[toIndex];
     const fromRect = fromTubeEl.getBoundingClientRect();
     const toRect = toTubeEl.getBoundingClientRect();
+    
     fromTubeEl.classList.add('tilting');
+    const movingSelected = gameState.selectedTubeIndex;
     gameState.selectedTubeIndex = null;
+
     const animationPromises = [];
     for (let i = 0; i < count; i++) {
         const catId = gameState.tubes[fromIndex].pop();
+        // データ更新後、即座にレンダリングして見た目の整合性を保つ
         renderTubes();
         animationPromises.push(animateSingleCat(catId, fromRect, toRect, toIndex, toTubeEl, i));
-        await wait(250); 
+        await wait(100); // サクサク進めるために間隔を短縮
     }
+    
     fromTubeEl.classList.remove('tilting');
+    
+    // アニメーション完了を待つ（クリア判定などのため）
     await Promise.all(animationPromises);
-    gameState.isAnimating = false;
+    gameState.animatingCount--;
+
     if (isTubeComplete(toIndex) && !gameState.clearedTubes.includes(toIndex)) {
         gameState.clearedTubes.push(toIndex);
         renderTubes();
@@ -155,7 +168,9 @@ async function executeMove(fromIndex, toIndex, count) {
         if (tubeEl) tubeEl.classList.add('vibrate-once');
         playPurr();
     }
-    if (checkWin()) {
+
+    // 全てのアニメーションが終わったタイミングで勝利判定
+    if (gameState.animatingCount === 0 && checkWin()) {
         gameState.isTransitioning = true;
         document.getElementById('victory-overlay').classList.remove('hidden');
         document.querySelectorAll('.cat').forEach((cat, i) => setTimeout(() => cat.classList.add('jumping'), i * 50));
@@ -274,11 +289,11 @@ function initGame() {
     
     // UI Event Listeners
     document.getElementById('reset-btn').onclick = () => { 
-        if (gameState.isAnimating) return;
+        if (gameState.animatingCount > 0) return;
         if(confirm('最初からやり直しますか？')) { setupLevel(gameState.level); renderTubes(); } 
     };
-        document.getElementById('undo-btn').onclick = () => { 
-        if (gameState.isAnimating) return;
+    document.getElementById('undo-btn').onclick = () => { 
+        if (gameState.animatingCount > 0) return;
         if(gameState.history.length > 0) { 
             const prevState = gameState.history[gameState.history.length - 1];
             // 履歴の状態と今の状態を比べて、タワーが減るかどうかチェック
@@ -293,7 +308,7 @@ function initGame() {
     };
     document.getElementById('mute-btn').onclick = () => toggleMute();
     document.getElementById('add-tube-btn').onclick = () => {
-        if (gameState.isAnimating) return;
+        if (gameState.animatingCount > 0) return;
         addExtraTube();
     };
     document.getElementById('start-new-btn').onclick = () => {

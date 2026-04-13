@@ -250,7 +250,12 @@ async function addExtraTube() {
     if (gameState.tubes.length > (gameState.initialTubes.length + 1)) { alert('これ以上追加できません。'); return; }
     if (confirm('広告を視聴して、新しいキャットタワーを追加しますか？\n（クリアがぐっと楽になります！）')) {
         const success = await showRewardedAd();
-        if (success) { gameState.tubes.push([]); renderTubes(); }
+                if (success) { 
+            // 重要：タワーを追加する前の状態を履歴に保存する
+            gameState.history.push(JSON.parse(JSON.stringify(gameState.tubes)));
+            gameState.tubes.push([]); 
+            renderTubes(); 
+        }
     }
 }
 

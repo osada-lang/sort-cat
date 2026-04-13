@@ -20,21 +20,24 @@
 }
 
 body {
-    font-family: 'Rounded Mplus 1c', 'Comic Sans MS', 'Noto Sans JP', sans-serif;
-    background-color: var(--bg-color);
+    margin: 0;
+    padding: 0;
+    font-family: 'Kosugi Maru', sans-serif;
     color: var(--text-color);
+    background-color: var(--bg-color); /* ゲームと同じ背景色にする */
     overflow: hidden;
-    touch-action: manipulation;
+    height: 100vh;
 }
 
 #game-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 100dvh;
-    padding: 0 10px; /* Adjusted padding to prevent overall scroll */
-    background: radial-gradient(circle at center 70%, var(--floor-color) 0%, var(--bg-color) 60%);
-    overflow: hidden; /* Lock the screen */
+    height: 92vh; /* ここを100dvhから92vhに変更 */
+    margin: auto; /* ここを追加（上下中央寄せ） */
+    padding: 0 10px;
+    background: radial-gradient(circle at center 70%, var(--floor-color) 0%, var(--bg-color) 100%);
+    overflow: hidden;
 }
 
 header {
@@ -485,6 +488,112 @@ button:active {
     transition: opacity 0.5s ease, visibility 0.5s;
 }
 
+/* Tutorial Overlay */
+#tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+.tutorial-content {
+    background: white;
+    padding: 2.5rem 1.5rem;
+    border-radius: 2rem;
+    width: 85%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+#tutorial-title {
+    color: #ff8fb1;
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    font-weight: 800;
+}
+
+.tutorial-slide {
+    display: none;
+    min-height: 220px;
+}
+
+.tutorial-slide.active {
+    display: block;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.tutorial-slide p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #444;
+    margin-bottom: 1.5rem;
+}
+
+.tutorial-slide strong {
+    color: #ff8fb1;
+}
+
+.tutorial-visual {
+    background: #fdf2f5;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    font-size: 3rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.tutorial-footer {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.tutorial-dots {
+    display: flex;
+    gap: 0.8rem;
+}
+
+.tutorial-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    transition: all 0.3s;
+}
+
+.tutorial-dots .dot.active {
+    background: #ff8fb1;
+    transform: scale(1.3);
+}
+
+#tutorial-next-btn {
+    background: #ff8fb1;
+    color: white;
+    border: none;
+    padding: 0.8rem 3rem;
+    border-radius: 2rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(255, 143, 177, 0.3);
+}
+
+#tutorial-next-btn:active {
+    transform: translateY(2px);
+    box-shadow: none;
+}
+
 .start-content {
     background: rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(15px);
@@ -567,4 +676,13 @@ button:active {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
+}
+/* Androidのナビゲーションバー対策：ボタンを上に上げる */
+.controls {
+    display: flex;
+    gap: 10px;
+    padding: 10px 10px 30px 10px !important; /* 下の余白を30pxに強化 */
+    width: 100%;
+    justify-content: center;
+    background-color: transparent;
 }

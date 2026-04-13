@@ -473,8 +473,10 @@ function generateOrganicPurr() {
     
     console.log("Organic Purr Engine Started!");
     
-    // Haptic Feedback
-    if ("vibrate" in navigator) {
+        // Haptic Feedback
+    if (window.Capacitor && window.Capacitor.Plugins.Haptics) {
+        window.Capacitor.Plugins.Haptics.vibrate();
+    } else if ("vibrate" in navigator) {
         navigator.vibrate([150, 50, 150, 50, 150, 50, 150, 50, 150, 50, 150, 50, 150, 50, 150, 50]);
     }
 

@@ -42,7 +42,8 @@ let gameState = {
     clearedTubes: [],
     currentVersion: '1.0.3', // 現在のバージョン
     latestVersion: '1.0.4', // モック最新バージョン（実際は外部から取得可能）
-    bgCatInterval: null
+    bgCatInterval: null,
+    adPrepared: false // 広告の準備状態
 };
 
 const SAVE_KEY = 'nekozoroe_level_v1';
@@ -254,18 +255,51 @@ async function initAdMob() {
     try {
         const Capacitor = window.Capacitor;
         const { AdMob } = (Capacitor && Capacitor.Plugins) ? Capacitor.Plugins : {};
-        if (AdMob) await AdMob.initialize({ requestTrackingAuthorization: true }); 
+        if (AdMob) {
+            await AdMob.initialize({ requestTrackingAuthorization: true }); 
+            // 起動時に1回目のプリロード
+            prepareAd();
+        }
     } catch (e) {}
 }
+
+async function prepareAd() {
+    try {
+        const Capacitor = window.Capacitor;
+        const { AdMob } = (Capacitor && Capacitor.Plugins) ? Capacitor.Plugins : {};
+        if (!AdMob) return;
+        
+        await AdMob.prepareRewardVideoAd({ adId: ADMOB_CONFIG.rewardedId });
+        gameState.adPrepared = true;
+    } catch (e) {
+        gameState.adPrepared = false;
+    }
+}
+
 async function showRewardedAd() {
     try {
         const Capacitor = window.Capacitor;
         const { AdMob } = (Capacitor && Capacitor.Plugins) ? Capacitor.Plugins : {};
         if (!AdMob) return true;
-        await AdMob.prepareRewardVideoAd({ adId: ADMOB_CONFIG.rewardedId });
+
+        // 準備ができていない場合は、その場で準備を試みる
+        if (!gameState.adPrepared) {
+            await AdMob.prepareRewardVideoAd({ adId: ADMOB_CONFIG.rewardedId });
+        }
+
         const reward = await AdMob.showRewardVideoAd();
+        
+        // 視聴完了後、次の広告をプリロードしておく
+        gameState.adPrepared = false;
+        prepareAd();
+
         return !!reward;
-    } catch (e) { alert('広告の読み込みに失敗しました。'); return false; }
+    } catch (e) { 
+        // 失敗した場合は再度プリロードを試みる
+        prepareAd();
+        alert('広告の準備ができていません。少し待ってから再度お試しください。'); 
+        return false; 
+    }
 }
 async function addExtraTube() {
     if (gameState.tubes.length > (gameState.initialTubes.length + 1)) { alert('これ以上追加できません。'); return; }

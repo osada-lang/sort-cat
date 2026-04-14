@@ -580,9 +580,9 @@ button:active {
     height: 60px;
     background-size: contain;
     background-repeat: no-repeat;
-    opacity: 0.25;
+    opacity: 0.5; /* 0.25から0.5に引き上げ */
     z-index: -1;
-    transition: transform 15s linear;
+    transition: transform 15s linear, left 15s linear, top 15s linear;
 }
 
 #start-screen {

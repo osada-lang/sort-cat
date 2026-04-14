@@ -321,18 +321,21 @@ async function spawnBackgroundCat() {
     cat.style.left = `${startX}%`;
     cat.style.top = `${startY}%`;
     
-    // 進行方向に向ける（簡易版：左右のみ）
-    if (endX < startX) cat.style.transform = 'scaleX(-1)';
+    // 進行方向とランダムな回転を適用
+    const scaleX = (endX < startX) ? -1 : 1;
+    const rotation = (Math.random() - 0.5) * 720; // 720度（2回転）程度ランダムに回る
+    cat.style.transform = `scaleX(${scaleX}) rotate(0deg)`;
 
     container.appendChild(cat);
 
     // アニメーション実行
     const duration = 15000 + Math.random() * 10000; // 15〜25秒
-    cat.style.transition = `all ${duration}ms linear`;
+    cat.style.transition = `left ${duration}ms linear, top ${duration}ms linear, transform ${duration}ms linear`;
     
     setTimeout(() => {
         cat.style.left = `${endX}%`;
         cat.style.top = `${endY}%`;
+        cat.style.transform = `scaleX(${scaleX}) rotate(${rotation}deg)`;
     }, 50);
 
     // 終了後に削除

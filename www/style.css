@@ -61,8 +61,8 @@ body {
 }
 
 #brand-logo {
-    max-width: 60%;
-    max-height: 40%;
+    max-width: 80%; /* 60%から80%に拡大 */
+    max-height: 60%; /* 40%から60%に拡大 */
     opacity: 0;
     transform: scale(0.9);
     transition: opacity 1.0s ease-in-out, transform 1.0s ease-out;

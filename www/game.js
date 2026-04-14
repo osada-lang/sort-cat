@@ -290,11 +290,11 @@ async function showBrandSplash() {
 
     await wait(100);
     logo.classList.add('fade-in');
-    await wait(1500); // 0.5s fade-in + 1.0s static
+    await wait(1500); // 1.0s fade-in + 0.5s static
     logo.classList.remove('fade-in');
-    await wait(500); // 0.5s fade-out
+    await wait(1000); // 1.0s fade-out
     splash.classList.add('fade-out');
-    await wait(500);
+    await wait(1000); // 1.0s splash fade-out
     splash.remove();
 }
 

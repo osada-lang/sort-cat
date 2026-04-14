@@ -41,7 +41,8 @@ let gameState = {
     isTransitioning: false,
     clearedTubes: [],
     currentVersion: '1.0.3', // 現在のバージョン
-    latestVersion: '1.0.4' // モック最新バージョン（実際は外部から取得可能）
+    latestVersion: '1.0.4', // モック最新バージョン（実際は外部から取得可能）
+    bgCatInterval: null
 };
 
 const SAVE_KEY = 'nekozoroe_level_v1';
@@ -278,9 +279,64 @@ async function addExtraTube() {
 
 /** --- SYSTEM --- **/
 function startGame(level) {
+    if (gameState.bgCatInterval) {
+        clearInterval(gameState.bgCatInterval);
+        gameState.bgCatInterval = null;
+    }
     gameState.level = level; saveProgress(level); startAudio(true);
     document.getElementById('start-screen').classList.add('fade-out');
     setupLevel(gameState.level); renderTubes();
+}
+
+async function spawnBackgroundCat() {
+    const container = document.getElementById('background-cats-container');
+    if (!container || document.getElementById('start-screen').classList.contains('fade-out')) return;
+
+    const cat = document.createElement('div');
+    cat.className = 'bg-cat';
+    
+    // ランダムな猫を選択
+    const pattern = CONFIG.patterns[Math.floor(Math.random() * CONFIG.patterns.length)];
+    const suffix = (pattern.id === 'white') ? '_centered_v11.png' : '_tight_v11.png';
+    cat.style.backgroundImage = `url('assets/images/cat_${pattern.id}${suffix}')`;
+
+    // 開始地点と終了地点をランダムに決定（画面外から画面外へ）
+    const startSide = Math.floor(Math.random() * 4); // 0:上, 1:右, 2:下, 3:左
+    let startX, startY, endX, endY;
+
+    if (startSide === 0) { // 上から
+        startX = Math.random() * 100; startY = -10;
+        endX = Math.random() * 100; endY = 110;
+    } else if (startSide === 1) { // 右から
+        startX = 110; startY = Math.random() * 100;
+        endX = -10; endY = Math.random() * 100;
+    } else if (startSide === 2) { // 下から
+        startX = Math.random() * 100; startY = 110;
+        endX = Math.random() * 100; endY = -10;
+    } else { // 左から
+        startX = -10; startY = Math.random() * 100;
+        endX = 110; endY = Math.random() * 100;
+    }
+
+    cat.style.left = `${startX}%`;
+    cat.style.top = `${startY}%`;
+    
+    // 進行方向に向ける（簡易版：左右のみ）
+    if (endX < startX) cat.style.transform = 'scaleX(-1)';
+
+    container.appendChild(cat);
+
+    // アニメーション実行
+    const duration = 15000 + Math.random() * 10000; // 15〜25秒
+    cat.style.transition = `all ${duration}ms linear`;
+    
+    setTimeout(() => {
+        cat.style.left = `${endX}%`;
+        cat.style.top = `${endY}%`;
+    }, 50);
+
+    // 終了後に削除
+    setTimeout(() => cat.remove(), duration + 100);
 }
 
 async function showBrandSplash() {
@@ -308,6 +364,10 @@ function checkUpdate() {
 function initGame() {
     showBrandSplash();
     setTimeout(checkUpdate, 2000); // スプラッシュ終了後にチェック
+    
+    // 背景猫の生成開始
+    gameState.bgCatInterval = setInterval(spawnBackgroundCat, 3000);
+    for(let i=0; i<3; i++) setTimeout(spawnBackgroundCat, i * 1000); // 最初は多めに
     
     preloadAssets();
     const savedLevel = loadProgress();

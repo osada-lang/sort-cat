@@ -563,18 +563,40 @@ button:active {
 }
 
 /* Start Screen Premium Styles */
+#background-cats-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.bg-cat {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0.25;
+    z-index: -1;
+    transition: transform 15s linear;
+}
+
 #start-screen {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at center, var(--bg-color) 0%, var(--floor-color) 100%);
+    background: radial-gradient(circle at center 70%, var(--floor-color) 0%, var(--bg-color) 100%);
     display: flex;
-    align-items: center;
     justify-content: center;
-    z-index: 5000;
-    transition: opacity 0.5s ease, visibility 0.5s;
+    align-items: center;
+    z-index: 2000;
+    transition: opacity 0.8s ease-in-out;
 }
 
 /* Tutorial Overlay */

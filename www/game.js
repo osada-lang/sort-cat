@@ -53,7 +53,10 @@ const ADMOB_CONFIG = {
 
 const bgm = new Audio('assets/sounds/bgm.mp3');
 bgm.loop = true;
-bgm.volume = 0.3;
+const homeBgm = new Audio('assets/sounds/home_bgm.mp3');
+homeBgm.loop = true;
+
+const meow = new Audio('assets/sounds/meow.mp3');
 
 /** --- CORE --- **/
 
@@ -283,6 +286,8 @@ function startGame(level) {
         clearInterval(gameState.bgCatInterval);
         gameState.bgCatInterval = null;
     }
+    homeBgm.pause();
+    homeBgm.currentTime = 0;
     gameState.level = level; saveProgress(level); startAudio(true);
     document.getElementById('start-screen').classList.add('fade-out');
     setupLevel(gameState.level); renderTubes();
@@ -347,6 +352,17 @@ async function showBrandSplash() {
     const logo = document.getElementById('brand-logo');
     if (!splash || !logo) return;
 
+    // 初回タップで音声再生許可を得るための処理
+    const enableAudio = () => {
+        if (!gameState.isMuted) {
+            homeBgm.play().catch(() => {});
+        }
+        document.removeEventListener('click', enableAudio);
+        document.removeEventListener('touchstart', enableAudio);
+    };
+    document.addEventListener('click', enableAudio);
+    document.addEventListener('touchstart', enableAudio);
+
     await wait(100);
     logo.classList.add('fade-in');
     await wait(1500); // 1.0s fade-in + 0.5s static
@@ -355,6 +371,9 @@ async function showBrandSplash() {
     splash.classList.add('fade-out');
     await wait(1000); // 1.0s splash fade-out
     splash.remove();
+    
+    // スプラッシュ終了後にも再生を試みる
+    if (!gameState.isMuted) homeBgm.play().catch(() => {});
 }
 
 function checkUpdate() {
@@ -368,9 +387,9 @@ function initGame() {
     showBrandSplash();
     setTimeout(checkUpdate, 2000); // スプラッシュ終了後にチェック
     
-    // 背景猫の生成開始
-    gameState.bgCatInterval = setInterval(spawnBackgroundCat, 3000);
-    for(let i=0; i<3; i++) setTimeout(spawnBackgroundCat, i * 1000); // 最初は多めに
+    // 背景猫の生成開始（頻度アップ：3000ms -> 1500ms）
+    gameState.bgCatInterval = setInterval(spawnBackgroundCat, 1500);
+    for(let i=0; i<5; i++) setTimeout(spawnBackgroundCat, i * 500); // 最初は多めに（3匹 -> 5匹）
     
     preloadAssets();
     const savedLevel = loadProgress();

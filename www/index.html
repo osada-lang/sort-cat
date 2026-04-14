@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="style.css?v=11.9">
 </head>
 <body>
+    <!-- Brand Splash Screen -->
+    <div id="brand-splash">
+        <img src="assets/images/brand_logo.png" alt="JIRACHI Logo" id="brand-logo">
+    </div>
+
     <!-- Start Screen Overlay -->
     <div id="start-screen">
         <div class="start-content">
@@ -38,6 +43,18 @@
             <button id="undo-btn">1つ戻す</button>
             <button id="add-tube-btn">+ タワー</button>
         </footer>
+    </div>
+
+    <!-- Update Notification Overlay -->
+    <div id="update-overlay" class="overlay hidden">
+        <div class="overlay-content">
+            <h2>アップデートのお知らせ</h2>
+            <p>新しいバージョンがあります。<br>最新版にアップデートして、より快適に遊びましょう！</p>
+            <div class="overlay-buttons">
+                <button id="update-now-btn" class="primary-btn">今すぐ更新</button>
+                <button id="update-later-btn" class="secondary-btn">あとで</button>
+            </div>
+        </div>
     </div>
 
     <!-- Victory Overlay -->

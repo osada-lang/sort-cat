@@ -39,7 +39,9 @@ let gameState = {
     isMuted: false,
     bgmStarted: false,
     isTransitioning: false,
-    clearedTubes: []
+    clearedTubes: [],
+    currentVersion: '1.0.3', // 現在のバージョン
+    latestVersion: '1.0.4' // モック最新バージョン（実際は外部から取得可能）
 };
 
 const SAVE_KEY = 'nekozoroe_level_v1';
@@ -281,7 +283,32 @@ function startGame(level) {
     setupLevel(gameState.level); renderTubes();
 }
 
+async function showBrandSplash() {
+    const splash = document.getElementById('brand-splash');
+    const logo = document.getElementById('brand-logo');
+    if (!splash || !logo) return;
+
+    await wait(100);
+    logo.classList.add('fade-in');
+    await wait(1000); // 0.5s fade-in + 0.5s static
+    logo.classList.remove('fade-in');
+    await wait(500); // 0.5s fade-out
+    splash.classList.add('fade-out');
+    await wait(500);
+    splash.remove();
+}
+
+function checkUpdate() {
+    // 実際はここで外部API/JSONを取得する
+    if (gameState.currentVersion !== gameState.latestVersion) {
+        document.getElementById('update-overlay').classList.remove('hidden');
+    }
+}
+
 function initGame() {
+    showBrandSplash();
+    setTimeout(checkUpdate, 2000); // スプラッシュ終了後にチェック
+    
     preloadAssets();
     const savedLevel = loadProgress();
     const continueBtn = document.getElementById('start-continue-btn');
@@ -290,7 +317,14 @@ function initGame() {
     // UI Event Listeners
     document.getElementById('reset-btn').onclick = () => { 
         if (gameState.animatingCount > 0) return;
-        if(confirm('最初からやり直しますか？')) { setupLevel(gameState.level); renderTubes(); } 
+        if(confirm('現在のレベルを最初からやり直しますか？')) { 
+            // 初期配置を復元する
+            gameState.tubes = JSON.parse(JSON.stringify(gameState.initialTubes));
+            gameState.selectedTubeIndex = null;
+            gameState.history = [];
+            gameState.clearedTubes = [];
+            renderTubes(); 
+        } 
     };
     document.getElementById('undo-btn').onclick = () => { 
         if (gameState.animatingCount > 0) return;
@@ -317,6 +351,17 @@ function initGame() {
     };
     if (continueBtn) continueBtn.onclick = () => startGame(loadProgress());
     document.getElementById('tutorial-next-btn').onclick = nextTutorialSlide;
+
+    document.getElementById('update-now-btn').onclick = () => {
+        const url = /iPhone|iPad|iPod/.test(navigator.userAgent) 
+            ? 'https://apps.apple.com/app/id6761840479' 
+            : 'https://play.google.com/store/apps/details?id=com.jirachi.nekozoroe';
+        window.open(url, '_blank');
+    };
+    
+    document.getElementById('update-later-btn').onclick = () => {
+        document.getElementById('update-overlay').classList.add('hidden');
+    };
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) bgm.pause(); else if (!gameState.isMuted && gameState.bgmStarted) bgm.play().catch(() => {});

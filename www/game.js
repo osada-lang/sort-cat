@@ -386,42 +386,38 @@ async function showBrandSplash() {
     const logo = document.getElementById('brand-logo');
     if (!splash || !logo) return;
 
-    // 初回タップで音声再生許可を得るための処理（モバイル対応のため幅広いイベントを検知）
-    const enableAudio = () => {
-        if (!gameState.isMuted) {
-            homeBgm.play().then(() => {
-                console.log("Home BGM started via interaction");
-            }).catch((e) => {
-                console.log("Audio play prevented:", e);
-            });
-        }
-        document.removeEventListener('click', enableAudio);
-        document.removeEventListener('touchstart', enableAudio);
-        document.removeEventListener('touchend', enableAudio);
-        document.removeEventListener('mousedown', enableAudio);
-    };
-    document.addEventListener('click', enableAudio);
-    document.addEventListener('touchstart', enableAudio);
-    document.addEventListener('touchend', enableAudio);
-    document.addEventListener('mousedown', enableAudio);
-
+    // ロゴのフェードイン・アウト演出
     await wait(100);
     logo.classList.add('fade-in');
     await wait(1500); // 1.0s fade-in + 0.5s static
     logo.classList.remove('fade-in');
     await wait(1000); // 1.0s fade-out
+
+    // 「タップしてスタート」テキストを表示
+    const tapText = document.createElement('p');
+    tapText.textContent = 'タップしてスタート';
+    tapText.style.cssText = 'color:#999;font-size:1rem;position:absolute;bottom:25%;left:50%;transform:translateX(-50%);animation:fadeInTap 1s ease infinite alternate;';
+    splash.appendChild(tapText);
+
+    // ユーザーのタップを待ってからホーム画面へ遷移（これで音声再生許可を確実に取得）
+    await new Promise(resolve => {
+        const onTap = () => {
+            // タップ時にBGMを再生（ユーザー操作なので確実に許可される）
+            if (!gameState.isMuted) {
+                homeBgm.play().catch(() => {});
+            }
+            splash.removeEventListener('click', onTap);
+            splash.removeEventListener('touchend', onTap);
+            resolve();
+        };
+        splash.addEventListener('click', onTap);
+        splash.addEventListener('touchend', onTap);
+    });
+
+    // スプラッシュをフェードアウトして削除
     splash.classList.add('fade-out');
-    await wait(1000); // 1.0s splash fade-out
+    await wait(1000);
     splash.remove();
-    
-    // スプラッシュ終了後にも再生を試みる（すでに許可が得られているが自動再生がブロックされた場合の保険）
-    if (!gameState.isMuted && (homeBgm.paused || homeBgm.currentTime === 0)) {
-        homeBgm.play().then(() => {
-            console.log("Home BGM started after splash");
-        }).catch(() => {
-            console.log("Home BGM play failed after splash - waiting for user interaction");
-        });
-    }
 }
 
 function checkUpdate() {

@@ -225,7 +225,7 @@ function isTubeComplete(index) {
 function playMeow() { if (!gameState.isMuted) { const a = new Audio('assets/sounds/meow.mp3'); a.playbackRate = 0.8 + Math.random() * 0.6; a.volume = 0.6; a.play().catch(() => {}); } }
 function playPurr() { if (!gameState.isMuted) { const a = new Audio('assets/sounds/purr.mp3'); a.volume = 0.7; a.play().catch(() => { if (window.Capacitor && window.Capacitor.Plugins.Haptics) window.Capacitor.Plugins.Haptics.vibrate(); }); } }
 function startAudio(force = false) { if ((force || !gameState.bgmStarted) && !gameState.isMuted) bgm.play().then(() => { gameState.bgmStarted = true; }).catch(() => {}); }
-function toggleMute() { gameState.isMuted = !gameState.isMuted; document.getElementById('mute-btn').innerText = gameState.isMuted ? '🔇' : '🔊'; if (gameState.isMuted) bgm.pause(); else if (gameState.bgmStarted) bgm.play(); }
+function toggleMute() { gameState.isMuted = !gameState.isMuted; document.getElementById('mute-btn').innerText = gameState.isMuted ? '🔇' : '🔊'; if (gameState.isMuted) { bgm.pause(); homeBgm.pause(); } else if (gameState.bgmStarted) { bgm.play(); } else { homeBgm.play().catch(() => {}); } }
 function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function saveProgress(l) { localStorage.setItem(SAVE_KEY, l.toString()); }
 function loadProgress() { const s = localStorage.getItem(SAVE_KEY); return s ? parseInt(s, 10) : 1; }
@@ -386,16 +386,24 @@ async function showBrandSplash() {
     const logo = document.getElementById('brand-logo');
     if (!splash || !logo) return;
 
-    // 初回タップで音声再生許可を得るための処理
+    // 初回タップで音声再生許可を得るための処理（モバイル対応のため幅広いイベントを検知）
     const enableAudio = () => {
         if (!gameState.isMuted) {
-            homeBgm.play().catch(() => {});
+            homeBgm.play().then(() => {
+                console.log("Home BGM started via interaction");
+            }).catch((e) => {
+                console.log("Audio play prevented:", e);
+            });
         }
         document.removeEventListener('click', enableAudio);
         document.removeEventListener('touchstart', enableAudio);
+        document.removeEventListener('touchend', enableAudio);
+        document.removeEventListener('mousedown', enableAudio);
     };
     document.addEventListener('click', enableAudio);
     document.addEventListener('touchstart', enableAudio);
+    document.addEventListener('touchend', enableAudio);
+    document.addEventListener('mousedown', enableAudio);
 
     await wait(100);
     logo.classList.add('fade-in');
@@ -406,8 +414,14 @@ async function showBrandSplash() {
     await wait(1000); // 1.0s splash fade-out
     splash.remove();
     
-    // スプラッシュ終了後にも再生を試みる
-    if (!gameState.isMuted) homeBgm.play().catch(() => {});
+    // スプラッシュ終了後にも再生を試みる（すでに許可が得られているが自動再生がブロックされた場合の保険）
+    if (!gameState.isMuted && (homeBgm.paused || homeBgm.currentTime === 0)) {
+        homeBgm.play().then(() => {
+            console.log("Home BGM started after splash");
+        }).catch(() => {
+            console.log("Home BGM play failed after splash - waiting for user interaction");
+        });
+    }
 }
 
 function checkUpdate() {

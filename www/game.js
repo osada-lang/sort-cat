@@ -401,20 +401,23 @@ async function showBrandSplash() {
 
     // ユーザーのタップを待ってからホーム画面へ遷移（これで音声再生許可を確実に取得）
     await new Promise(resolve => {
-        const onTap = () => {
+        const onTap = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             // タップ時にBGMを再生（ユーザー操作なので確実に許可される）
             if (!gameState.isMuted) {
                 homeBgm.play().catch(() => {});
             }
-            splash.removeEventListener('click', onTap);
-            splash.removeEventListener('touchend', onTap);
+            splash.removeEventListener('click', onTap, true);
+            splash.removeEventListener('touchend', onTap, true);
             resolve();
         };
-        splash.addEventListener('click', onTap);
-        splash.addEventListener('touchend', onTap);
+        splash.addEventListener('click', onTap, true);
+        splash.addEventListener('touchend', onTap, true);
     });
 
-    // スプラッシュをフェードアウトして削除
+    // スプラッシュをフェードアウトして削除（pointer-eventsで下層への伝播を完全にブロック）
+    splash.style.pointerEvents = 'none';
     splash.classList.add('fade-out');
     await wait(1000);
     splash.remove();

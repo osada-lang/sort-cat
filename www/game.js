@@ -40,8 +40,8 @@ let gameState = {
     bgmStarted: false,
     isTransitioning: false,
     clearedTubes: [],
-    currentVersion: '1.0.3', // 現在のバージョン
-    latestVersion: '1.0.4', // モック最新バージョン（実際は外部から取得可能）
+    currentVersion: '1.0.5', // 現在のバージョン
+    latestVersion: '1.0.5', // モック最新バージョン（実際は外部から取得可能）
     bgCatInterval: null,
     adPrepared: false // 広告の準備状態
 };
@@ -187,6 +187,7 @@ async function executeMove(fromIndex, toIndex, count) {
             saveProgress(gameState.level);
             setupLevel(gameState.level);
             renderTubes();
+            document.getElementById('tube-container').scrollTop = 0;
         }, 1800);
     }
 }
@@ -222,7 +223,7 @@ function isTubeComplete(index) {
 }
 
 /** --- UTILS --- **/
-function playMeow() { if (!gameState.isMuted) { const a = new Audio('assets/sounds/meow.mp3'); a.playbackRate = 0.8 + Math.random() * 0.6; a.volume = 0.6; a.play().catch(() => {}); } }
+function playMeow() { if (!gameState.isMuted) { const a = new Audio('assets/sounds/meow.mp3'); a.playbackRate = 0.8 + Math.random() * 0.6; a.volume = 0.3; a.play().catch(() => {}); } }
 function playPurr() { if (!gameState.isMuted) { const a = new Audio('assets/sounds/purr.mp3'); a.volume = 0.7; a.play().catch(() => { if (window.Capacitor && window.Capacitor.Plugins.Haptics) window.Capacitor.Plugins.Haptics.vibrate(); }); } }
 function startAudio(force = false) { if ((force || !gameState.bgmStarted) && !gameState.isMuted) bgm.play().then(() => { gameState.bgmStarted = true; }).catch(() => {}); }
 function toggleMute() { gameState.isMuted = !gameState.isMuted; document.getElementById('mute-btn').innerText = gameState.isMuted ? '🔇' : '🔊'; if (gameState.isMuted) { bgm.pause(); homeBgm.pause(); } else if (gameState.bgmStarted) { bgm.play(); } else { homeBgm.play().catch(() => {}); } }
@@ -289,12 +290,21 @@ async function showRewardedAd() {
 
         const reward = await AdMob.showRewardVideoAd();
         
+        // 広告終了後にBGMを再開
+        if (!gameState.isMuted && gameState.bgmStarted) {
+            bgm.play().catch(() => {});
+        }
+
         // 視聴完了後、次の広告をプリロードしておく
         gameState.adPrepared = false;
         prepareAd();
 
         return !!reward;
     } catch (e) { 
+        // 失敗した場合でもBGMを再開
+        if (!gameState.isMuted && gameState.bgmStarted) {
+            bgm.play().catch(() => {});
+        }
         // 失敗した場合は再度プリロードを試みる
         prepareAd();
         alert('広告の準備ができていません。少し待ってから再度お試しください。'); 
@@ -468,6 +478,18 @@ function initGame() {
             gameState.tubes = gameState.history.pop(); 
             renderTubes(); 
         }
+    };
+    document.getElementById('home-btn').onclick = () => {
+        if (gameState.animatingCount > 0) return;
+        bgm.pause();
+        gameState.bgmStarted = false;
+        if (!gameState.isMuted) homeBgm.play().catch(() => {});
+        gameState.bgCatInterval = setInterval(spawnBackgroundCat, 1500);
+        document.getElementById('start-screen').classList.remove('fade-out');
+        window.scrollTo(0, 0);
+        const savedLevel = loadProgress();
+        const continueBtn = document.getElementById('start-continue-btn');
+        if (savedLevel > 1 && continueBtn) { continueBtn.classList.remove('hidden'); continueBtn.innerText = `つづきから (Level ${savedLevel})`; }
     };
     document.getElementById('mute-btn').onclick = () => toggleMute();
     document.getElementById('add-tube-btn').onclick = () => {

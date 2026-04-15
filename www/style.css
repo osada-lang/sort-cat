@@ -754,6 +754,14 @@ button:active {
     width: 100%;
 }
 
+.bgm-notice {
+    margin-top: 18px;
+    color: rgba(0, 0, 0, 0.35);
+    font-size: 0.65rem;
+    text-align: center;
+    line-height: 1.6;
+}
+
 #start-continue-btn {
     font-size: 1.4rem;
     padding: 15px 40px;

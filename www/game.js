@@ -55,8 +55,8 @@ let gameState = {
     bgmStarted: false,
     isTransitioning: false,
     clearedTubes: [],
-    currentVersion: '1.0.5', // 現在のバージョン
-    latestVersion: '1.0.5', // モック最新バージョン（実際は外部から取得可能）
+    currentVersion: '1.0.6', // 現在のバージョン
+    latestVersion: '1.0.6', // モック最新バージョン（実際は外部から取得可能）
     bgCatInterval: null,
     adPrepared: false, // 広告の準備状態
     isTimeAttack: false,

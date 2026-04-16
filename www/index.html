@@ -22,6 +22,8 @@
             <div id="start-btn-container">
                 <button id="start-continue-btn" class="hidden">つづきから</button>
                 <button id="start-new-btn">さいしょから</button>
+                <button id="time-attack-btn">⏱️ タイムアタック</button>
+                <button id="ranking-btn">🏆 ランキング</button>
             </div>
             <p class="bgm-notice">🎵 BGMはアプリを閉じても再生されます。<br>作業用BGMとしてもお楽しみください。</p>
         </div>
@@ -35,6 +37,7 @@
                 <div id="level-info">Level <span id="level-number">1</span></div>
                 <button id="mute-btn" class="icon-btn">🔊</button>
             </div>
+            <div id="timer-display" class="hidden">⏱️ <span id="timer-value">0:00.0</span></div>
         </header>
 
         <div id="tube-container">
@@ -115,6 +118,43 @@
 
     <!-- Cat Walking Animation Overlay -->
     <div id="flying-cat-container"></div>
+
+    <!-- Time Attack Result Overlay -->
+    <div id="ta-result-overlay" class="overlay hidden">
+        <div class="overlay-content">
+            <h2>🎉 タイムアタック完了！</h2>
+            <p>クリアタイム：<strong id="ta-result-time">--</strong></p>
+            <div class="overlay-buttons">
+                <button id="ta-save-btn" class="primary-btn">記録を保存</button>
+                <button id="ta-skip-btn" class="secondary-btn">保存しない</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nickname Modal -->
+    <div id="nickname-modal" class="overlay hidden">
+        <div class="overlay-content">
+            <h2>ニックネームを入力</h2>
+            <p>ランキングに表示される名前です（最大8文字）</p>
+            <input type="text" id="nickname-input" placeholder="ねこ好き" maxlength="8">
+            <div class="overlay-buttons">
+                <button id="nickname-save-btn" class="primary-btn">けってい</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ranking Overlay -->
+    <div id="ranking-overlay" class="overlay hidden">
+        <div class="overlay-content ranking-content">
+            <h2>🏆 ランキング</h2>
+            <div class="ranking-tabs">
+                <button class="ranking-tab active" data-tab="level">最高レベル</button>
+                <button class="ranking-tab" data-tab="time">タイムアタック</button>
+            </div>
+            <div id="ranking-list"></div>
+            <button id="ranking-close-btn" class="secondary-btn">とじる</button>
+        </div>
+    </div>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>

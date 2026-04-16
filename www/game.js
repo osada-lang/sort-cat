@@ -57,7 +57,10 @@ let gameState = {
     currentVersion: '1.0.5', // 現在のバージョン
     latestVersion: '1.0.5', // モック最新バージョン（実際は外部から取得可能）
     bgCatInterval: null,
-    adPrepared: false // 広告の準備状態
+    adPrepared: false, // 広告の準備状態
+    isTimeAttack: false,
+    timeAttackStart: null,
+    timeAttackInterval: null
 };
 
 const SAVE_KEY = 'nekozoroe_level_v1';
@@ -197,11 +200,19 @@ async function executeMove(fromIndex, toIndex, count) {
         document.querySelectorAll('.cat').forEach((cat, i) => setTimeout(() => cat.classList.add('jumping'), i * 50));
         setTimeout(() => {
             document.getElementById('victory-overlay').classList.add('hidden');
+            const completedLevel = gameState.level;
             gameState.level++;
             saveProgress(gameState.level);
-            setupLevel(gameState.level);
-            renderTubes();
-            document.getElementById('tube-container').scrollTop = 0;
+            if (gameState.isTimeAttack && completedLevel >= 10) {
+                const elapsed = stopTimer();
+                gameState.isTimeAttack = false;
+                gameState.isTransitioning = false;
+                showTimeAttackResult(elapsed);
+            } else {
+                setupLevel(gameState.level);
+                renderTubes();
+                document.getElementById('tube-container').scrollTop = 0;
+            }
         }, 1800);
     }
 }
@@ -244,6 +255,121 @@ function toggleMute() { gameState.isMuted = !gameState.isMuted; document.getElem
 function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function saveProgress(l) { localStorage.setItem(SAVE_KEY, l.toString()); }
 function loadProgress() { const s = localStorage.getItem(SAVE_KEY); return s ? parseInt(s, 10) : 1; }
+
+/** --- TIME ATTACK & RANKING --- **/
+
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = (seconds % 60).toFixed(1);
+    const sPadded = parseFloat(s) < 10 ? '0' + s : s;
+    return `${m}:${sPadded}`;
+}
+
+function startTimer() {
+    gameState.timeAttackStart = Date.now();
+    const timerEl = document.getElementById('timer-display');
+    timerEl.classList.remove('hidden');
+    clearInterval(gameState.timeAttackInterval);
+    gameState.timeAttackInterval = setInterval(() => {
+        const elapsed = (Date.now() - gameState.timeAttackStart) / 1000;
+        document.getElementById('timer-value').textContent = formatTime(elapsed);
+    }, 100);
+}
+
+function stopTimer() {
+    clearInterval(gameState.timeAttackInterval);
+    gameState.timeAttackInterval = null;
+    document.getElementById('timer-display').classList.add('hidden');
+    if (gameState.timeAttackStart) {
+        const elapsed = (Date.now() - gameState.timeAttackStart) / 1000;
+        gameState.timeAttackStart = null;
+        return elapsed;
+    }
+    return 0;
+}
+
+function startTimeAttack() {
+    gameState.isTimeAttack = true;
+    startGame(1);
+    startTimer();
+}
+
+function goHome() {
+    bgm.pause();
+    gameState.bgmStarted = false;
+    if (!gameState.isMuted) homeBgm.play().catch(() => {});
+    gameState.bgCatInterval = setInterval(spawnBackgroundCat, 1500);
+    document.getElementById('start-screen').classList.remove('fade-out');
+    window.scrollTo(0, 0);
+    const savedLevel = loadProgress();
+    const continueBtn = document.getElementById('start-continue-btn');
+    if (savedLevel > 1 && continueBtn) { continueBtn.classList.remove('hidden'); continueBtn.innerText = `つづきから (Level ${savedLevel})`; }
+}
+
+function showNicknameModal() {
+    return new Promise(resolve => {
+        const modal = document.getElementById('nickname-modal');
+        const input = document.getElementById('nickname-input');
+        const saveBtn = document.getElementById('nickname-save-btn');
+        const saved = localStorage.getItem('nekozoroe_nickname');
+        if (saved) input.value = saved;
+        modal.classList.remove('hidden');
+        const handleSave = () => {
+            const name = input.value.trim();
+            if (!name) return;
+            localStorage.setItem('nekozoroe_nickname', name);
+            modal.classList.add('hidden');
+            resolve(name);
+        };
+        saveBtn.onclick = handleSave;
+    });
+}
+
+async function showTimeAttackResult(elapsed) {
+    const overlay = document.getElementById('ta-result-overlay');
+    const timeEl = document.getElementById('ta-result-time');
+    if (!overlay || !timeEl) return;
+    timeEl.textContent = formatTime(elapsed);
+    overlay.classList.remove('hidden');
+    document.getElementById('ta-save-btn').onclick = async () => {
+        overlay.classList.add('hidden');
+        let nickname = localStorage.getItem('nekozoroe_nickname');
+        if (!nickname) nickname = await showNicknameModal();
+        if (nickname) await saveRanking(10, elapsed);
+        showRanking('time');
+    };
+    document.getElementById('ta-skip-btn').onclick = () => {
+        overlay.classList.add('hidden');
+        goHome();
+    };
+}
+
+async function showRanking(defaultTab = 'level') {
+    const overlay = document.getElementById('ranking-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    await loadRankingTab(defaultTab);
+}
+
+async function loadRankingTab(tab) {
+    document.querySelectorAll('.ranking-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    const list = document.getElementById('ranking-list');
+    list.innerHTML = '<p class="ranking-loading">読み込み中...</p>';
+    const rankings = await getRankings(tab);
+    if (rankings.length === 0) {
+        list.innerHTML = '<p class="ranking-loading">まだ記録がありません</p>';
+        return;
+    }
+    list.innerHTML = rankings.map((entry, i) => {
+        const name = entry.nickname || '名無しさん';
+        const score = tab === 'level' ? `Lv.${entry.level}` : formatTime(entry.bestTime);
+        const isMe = entry.uid === currentUid;
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+        return `<div class="ranking-item${isMe ? ' ranking-me' : ''}"><span class="ranking-rank">${medal}</span><span class="ranking-name">${name}</span><span class="ranking-score">${score}</span></div>`;
+    }).join('');
+}
 
 /** --- TUTORIAL --- **/
 let currentTutorialSlide = 0;
@@ -467,35 +593,44 @@ async function initFirebase() {
     }
 }
 
-async function saveRanking(level) {
+async function saveRanking(level, time = null) {
     if (!firebaseDb || !currentUid) return;
     try {
         const nickname = localStorage.getItem('nekozoroe_nickname') || null;
         const ref = firebaseDb.collection('rankings').doc(currentUid);
         const existing = await ref.get();
         const data = existing.exists ? existing.data() : {};
+        const newBestTime = time !== null
+            ? (data.bestTime ? Math.min(time, data.bestTime) : time)
+            : (data.bestTime || null);
         await ref.set({
             nickname: nickname || data.nickname || null,
             level: Math.max(level, data.level || 0),
-            bestTime: data.bestTime || null,
+            bestTime: newBestTime,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        console.log('ランキング保存完了:', level);
+        console.log('ランキング保存完了:', level, time);
     } catch (e) {
         console.warn('ランキング保存エラー:', e);
     }
 }
 
-async function getRankings(type = 'level', limit = 10) {
+async function getRankings(type = 'level', limitCount = 10) {
     if (!firebaseDb) return [];
     try {
-        const field = type === 'level' ? 'level' : 'bestTime';
-        const order = type === 'level' ? 'desc' : 'asc';
-        const snapshot = await firebaseDb.collection('rankings')
-            .where(field, '>', 0)
-            .orderBy(field, order)
-            .limit(limit)
-            .get();
+        let query;
+        if (type === 'level') {
+            query = firebaseDb.collection('rankings')
+                .where('level', '>', 0)
+                .orderBy('level', 'desc')
+                .limit(limitCount);
+        } else {
+            query = firebaseDb.collection('rankings')
+                .where('bestTime', '>', 0)
+                .orderBy('bestTime', 'asc')
+                .limit(limitCount);
+        }
+        const snapshot = await query.get();
         return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
     } catch (e) {
         console.warn('ランキング取得エラー:', e);
@@ -551,15 +686,8 @@ function initGame() {
     };
     document.getElementById('home-btn').onclick = () => {
         if (gameState.animatingCount > 0) return;
-        bgm.pause();
-        gameState.bgmStarted = false;
-        if (!gameState.isMuted) homeBgm.play().catch(() => {});
-        gameState.bgCatInterval = setInterval(spawnBackgroundCat, 1500);
-        document.getElementById('start-screen').classList.remove('fade-out');
-        window.scrollTo(0, 0);
-        const savedLevel = loadProgress();
-        const continueBtn = document.getElementById('start-continue-btn');
-        if (savedLevel > 1 && continueBtn) { continueBtn.classList.remove('hidden'); continueBtn.innerText = `つづきから (Level ${savedLevel})`; }
+        if (gameState.isTimeAttack) { stopTimer(); gameState.isTimeAttack = false; }
+        goHome();
     };
     document.getElementById('mute-btn').onclick = () => toggleMute();
     document.getElementById('add-tube-btn').onclick = () => {
@@ -583,6 +711,10 @@ function initGame() {
     document.getElementById('update-later-btn').onclick = () => {
         document.getElementById('update-overlay').classList.add('hidden');
     };
+    document.getElementById('time-attack-btn').onclick = () => startTimeAttack();
+    document.getElementById('ranking-btn').onclick = () => showRanking('level');
+    document.getElementById('ranking-close-btn').onclick = () => document.getElementById('ranking-overlay').classList.add('hidden');
+    document.querySelectorAll('.ranking-tab').forEach(btn => { btn.onclick = () => loadRankingTab(btn.dataset.tab); });
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) bgm.pause(); else if (!gameState.isMuted && gameState.bgmStarted) bgm.play().catch(() => {});

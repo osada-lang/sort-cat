@@ -2,6 +2,20 @@
  * Sort Cat - Game Logic (Stability Optimized)
  */
 
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyClOYAH5OCY7SZIh6UCrq4Trvx0P1nNxIE",
+    authDomain: "nekozoroe.firebaseapp.com",
+    projectId: "nekozoroe",
+    storageBucket: "nekozoroe.firebasestorage.app",
+    messagingSenderId: "1022247326501",
+    appId: "1:1022247326501:web:a2693913ab3db5ea4540cc"
+};
+
+let firebaseApp = null;
+let firebaseAuth = null;
+let firebaseDb = null;
+let currentUid = null;
+
 const CONFIG = {
     maxCatsPerTube: 4,
     animationDuration: 500,
@@ -433,6 +447,62 @@ async function showBrandSplash() {
     splash.remove();
 }
 
+/** --- FIREBASE --- **/
+
+async function initFirebase() {
+    try {
+        if (!firebase || !firebase.apps) return;
+        if (firebase.apps.length === 0) {
+            firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+        } else {
+            firebaseApp = firebase.apps[0];
+        }
+        firebaseAuth = firebase.auth();
+        firebaseDb = firebase.firestore();
+        const userCredential = await firebaseAuth.signInAnonymously();
+        currentUid = userCredential.user.uid;
+        console.log('Firebase: 匿名ログイン成功', currentUid);
+    } catch (e) {
+        console.warn('Firebase初期化エラー:', e);
+    }
+}
+
+async function saveRanking(level) {
+    if (!firebaseDb || !currentUid) return;
+    try {
+        const nickname = localStorage.getItem('nekozoroe_nickname') || null;
+        const ref = firebaseDb.collection('rankings').doc(currentUid);
+        const existing = await ref.get();
+        const data = existing.exists ? existing.data() : {};
+        await ref.set({
+            nickname: nickname || data.nickname || null,
+            level: Math.max(level, data.level || 0),
+            bestTime: data.bestTime || null,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('ランキング保存完了:', level);
+    } catch (e) {
+        console.warn('ランキング保存エラー:', e);
+    }
+}
+
+async function getRankings(type = 'level', limit = 10) {
+    if (!firebaseDb) return [];
+    try {
+        const field = type === 'level' ? 'level' : 'bestTime';
+        const order = type === 'level' ? 'desc' : 'asc';
+        const snapshot = await firebaseDb.collection('rankings')
+            .where(field, '>', 0)
+            .orderBy(field, order)
+            .limit(limit)
+            .get();
+        return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.warn('ランキング取得エラー:', e);
+        return [];
+    }
+}
+
 function checkUpdate() {
     // 実際はここで外部API/JSONを取得する
     if (gameState.currentVersion !== gameState.latestVersion) {
@@ -519,6 +589,7 @@ function initGame() {
     });
     
     initAdMob();
+    initFirebase();
 }
 
 initGame();

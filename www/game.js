@@ -3,12 +3,13 @@
  */
 
 const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyClOYAH5OCY7SZIh6UCrq4Trvx0P1nNxIE",
+    apiKey: "AIzaSyClOYAH5OCY7SZiH6UCrq4Tnm60P1nNxIE",
     authDomain: "nekozoroe.firebaseapp.com",
     projectId: "nekozoroe",
     storageBucket: "nekozoroe.firebasestorage.app",
     messagingSenderId: "1022247326501",
-    appId: "1:1022247326501:web:a2693913ab3db5ea4540cc"
+    appId: "1:1022247326501:web:a26939136b3db5ea4540cc",
+    measurementId: "G-GJXT368XGM"
 };
 
 let firebaseApp = null;

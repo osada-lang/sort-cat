@@ -52,7 +52,7 @@ const ADMOB_CONFIG = {
     rewardedId: "ca-app-pub-9138341481603997/4138104480"
 };
 
-const bgm = new Audio('assets/sounds/bgm.mp3');
+const bgm = new Audio('assets/sounds/bgm_v2.mp3');
 bgm.loop = true;
 const homeBgm = new Audio('assets/sounds/home_bgm.mp3');
 homeBgm.loop = true;

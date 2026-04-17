@@ -438,13 +438,35 @@ function nextTutorialSlide() {
 async function initAdMob() {
     try {
         const Capacitor = window.Capacitor;
-        const { AdMob } = (Capacitor && Capacitor.Plugins) ? Capacitor.Plugins : {};
+        const { AdMob, AppTrackingTransparency } = (Capacitor && Capacitor.Plugins) ? Capacitor.Plugins : {};
         if (AdMob) {
-            await AdMob.initialize({ requestTrackingAuthorization: true }); 
-            // 起動時に1回目のプリロード
-            prepareAd();
+            // AdMob初期化（ATTリクエストなし）
+            await AdMob.initialize();
+            
+            // iOSの場合、ATT許可取得後に広告をプリロード
+            if (Capacitor.getPlatform() === 'ios' && AppTrackingTransparency) {
+                setTimeout(async () => {
+                    try {
+                        const status = await AppTrackingTransparency.getStatus();
+                        if (status === 'notDetermined') {
+                            await AppTrackingTransparency.requestPermission();
+                        }
+                        // ATT処理完了後に広告プリロード
+                        prepareAd();
+                    } catch (e) {
+                        console.error('ATT request failed:', e);
+                        // エラー時も広告プリロードを試行
+                        prepareAd();
+                    }
+                }, 2000);
+            } else {
+                // Androidの場合は即座にプリロード
+                prepareAd();
+            }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('AdMob init failed:', e);
+    }
 }
 
 async function prepareAd() {

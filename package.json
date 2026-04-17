@@ -16,6 +16,7 @@
     "@capacitor/cli": "^8.3.0",
     "@capacitor/core": "^8.3.0",
     "@capacitor/haptics": "^8.0.2",
-    "@capacitor/ios": "^8.3.0"
+    "@capacitor/ios": "^8.3.0",
+    "capacitor-app-tracking-transparency": "^2.0.1"
   }
 }

@@ -55,10 +55,11 @@ let gameState = {
     bgmStarted: false,
     isTransitioning: false,
     clearedTubes: [],
-    currentVersion: '1.0.6', // 現在のバージョン
-    latestVersion: '1.0.6', // モック最新バージョン（実際は外部から取得可能）
+    currentVersion: '1.0.7', // 現在のバージョン
+    latestVersion: '1.0.7', // Remote Configから起動時に取得
     bgCatInterval: null,
     adPrepared: false, // 広告の準備状態
+    interstitialPrepared: false, // インタースティシャル広告の準備状態
     isTimeAttack: false,
     timeAttackStart: null,
     timeAttackInterval: null
@@ -67,7 +68,9 @@ let gameState = {
 const SAVE_KEY = 'nekozoroe_level_v1';
 const ADMOB_CONFIG = {
     appId: "ca-app-pub-9138341481603997~6409773553",
-    rewardedId: "ca-app-pub-9138341481603997/4138104480"
+    rewardedId: "ca-app-pub-9138341481603997/4138104480",
+    interstitialIdAndroid: "ca-app-pub-9138341481603997/1577170116",
+    interstitialIdIos: "ca-app-pub-9138341481603997/3540988472"
 };
 
 const bgm = new Audio('assets/sounds/bgm_v2.mp3');
@@ -203,7 +206,10 @@ async function executeMove(fromIndex, toIndex, count) {
             document.getElementById('victory-overlay').classList.add('hidden');
             const completedLevel = gameState.level;
             gameState.level++;
-            saveProgress(gameState.level);
+            if (!gameState.isTimeAttack) {
+                saveProgress(gameState.level);
+                saveRanking(completedLevel);
+            }
             if (gameState.isTimeAttack && completedLevel >= 10) {
                 const elapsed = stopTimer();
                 gameState.isTimeAttack = false;
@@ -293,6 +299,7 @@ function startTimeAttack() {
     gameState.isTimeAttack = true;
     startGame(1);
     startTimer();
+    prepareInterstitialAd();
 }
 
 function goHome() {
@@ -319,6 +326,12 @@ function showNicknameModal() {
             const name = input.value.trim();
             if (!name) return;
             localStorage.setItem('nekozoroe_nickname', name);
+            if (firebaseDb && currentUid) {
+                firebaseDb.collection('rankings').doc(currentUid).set(
+                    { nickname: name },
+                    { merge: true }
+                ).catch(() => {});
+            }
             modal.classList.add('hidden');
             resolve(name);
         };
@@ -329,18 +342,47 @@ function showNicknameModal() {
 async function showTimeAttackResult(elapsed) {
     const overlay = document.getElementById('ta-result-overlay');
     const timeEl = document.getElementById('ta-result-time');
+    const diffEl = document.getElementById('ta-result-diff');
+    const msgEl = document.getElementById('ta-result-msg');
     if (!overlay || !timeEl) return;
     timeEl.textContent = formatTime(elapsed);
+    diffEl.textContent = '';
+    msgEl.textContent = '';
+
+    let prevBest = null;
+    if (firebaseDb && currentUid) {
+        try {
+            const ref = firebaseDb.collection('rankings').doc(currentUid);
+            const existing = await ref.get();
+            if (existing.exists) prevBest = existing.data().bestTime || null;
+        } catch(e) {}
+    }
+
+    const isNewBest = prevBest === null || elapsed < prevBest;
+
+    if (prevBest !== null) {
+        const diff = elapsed - prevBest;
+        if (diff < 0) {
+            diffEl.textContent = `前回より ${formatTime(Math.abs(diff))} 速い！`;
+        } else {
+            diffEl.textContent = `前回より ${formatTime(diff)} 遅い`;
+        }
+    } else {
+        diffEl.textContent = '初めての記録！';
+    }
+
+    if (isNewBest) {
+        msgEl.textContent = '🎉 おめでとう！自己ベスト更新！';
+        await saveRanking(null, elapsed);
+    } else {
+        msgEl.textContent = 'おつかれさまでした！';
+    }
+
     overlay.classList.remove('hidden');
-    document.getElementById('ta-save-btn').onclick = async () => {
+
+    document.getElementById('ta-home-btn').onclick = async () => {
         overlay.classList.add('hidden');
-        let nickname = localStorage.getItem('nekozoroe_nickname');
-        if (!nickname) nickname = await showNicknameModal();
-        if (nickname) await saveRanking(10, elapsed);
-        showRanking('time');
-    };
-    document.getElementById('ta-skip-btn').onclick = () => {
-        overlay.classList.add('hidden');
+        await showInterstitialAd();
         goHome();
     };
 }
@@ -452,6 +494,38 @@ async function showRewardedAd() {
         return false; 
     }
 }
+async function prepareInterstitialAd() {
+    try {
+        const Capacitor = window.Capacitor;
+        const { AdMob } = (Capacitor && Capacitor.Plugins) ? Capacitor.Plugins : {};
+        if (!AdMob) return;
+        const platform = Capacitor.getPlatform ? Capacitor.getPlatform() : 'android';
+        const adId = platform === 'ios' ? ADMOB_CONFIG.interstitialIdIos : ADMOB_CONFIG.interstitialIdAndroid;
+        await AdMob.prepareInterstitial({ adId });
+        gameState.interstitialPrepared = true;
+    } catch (e) {
+        gameState.interstitialPrepared = false;
+    }
+}
+
+async function showInterstitialAd() {
+    try {
+        const Capacitor = window.Capacitor;
+        const { AdMob } = (Capacitor && Capacitor.Plugins) ? Capacitor.Plugins : {};
+        if (!AdMob) return;
+        if (!gameState.interstitialPrepared) {
+            const platform = Capacitor.getPlatform ? Capacitor.getPlatform() : 'android';
+            const adId = platform === 'ios' ? ADMOB_CONFIG.interstitialIdIos : ADMOB_CONFIG.interstitialIdAndroid;
+            await AdMob.prepareInterstitial({ adId });
+        }
+        await AdMob.showInterstitial();
+        gameState.interstitialPrepared = false;
+        prepareInterstitialAd();
+    } catch (e) {
+        gameState.interstitialPrepared = false;
+    }
+}
+
 async function addExtraTube() {
     if (gameState.tubes.length > (gameState.initialTubes.length + 1)) { alert('これ以上追加できません。'); return; }
     if (confirm('広告を視聴して、新しいキャットタワーを追加しますか？\n（クリアがぐっと楽になります！）')) {
@@ -473,7 +547,9 @@ function startGame(level) {
     }
     homeBgm.pause();
     homeBgm.currentTime = 0;
-    gameState.level = level; saveProgress(level); startAudio(true);
+    gameState.level = level;
+    if (!gameState.isTimeAttack) saveProgress(level);
+    startAudio(true);
     document.getElementById('start-screen').classList.add('fade-out');
     setupLevel(gameState.level); renderTubes();
 }
@@ -589,6 +665,14 @@ async function initFirebase() {
         const userCredential = await firebaseAuth.signInAnonymously();
         currentUid = userCredential.user.uid;
         console.log('Firebase: 匿名ログイン成功', currentUid);
+
+        const remoteConfig = firebase.remoteConfig();
+        remoteConfig.settings.minimumFetchIntervalMillis = 3600000;
+        remoteConfig.defaultConfig = { latestVersion: gameState.currentVersion };
+        await remoteConfig.fetchAndActivate();
+        gameState.latestVersion = remoteConfig.getString('latestVersion');
+        console.log('Remote Config: latestVersion =', gameState.latestVersion);
+        checkUpdate();
     } catch (e) {
         console.warn('Firebase初期化エラー:', e);
     }
@@ -606,7 +690,7 @@ async function saveRanking(level, time = null) {
             : (data.bestTime || null);
         await ref.set({
             nickname: nickname || data.nickname || null,
-            level: Math.max(level, data.level || 0),
+            level: level !== null ? Math.max(level, data.level || 0) : (data.level || 0),
             bestTime: newBestTime,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -640,7 +724,6 @@ async function getRankings(type = 'level', limitCount = 10) {
 }
 
 function checkUpdate() {
-    // 実際はここで外部API/JSONを取得する
     if (gameState.currentVersion !== gameState.latestVersion) {
         document.getElementById('update-overlay').classList.remove('hidden');
     }
@@ -648,7 +731,6 @@ function checkUpdate() {
 
 function initGame() {
     showBrandSplash();
-    setTimeout(checkUpdate, 2000); // スプラッシュ終了後にチェック
     
     // 背景猫の生成開始（頻度アップ：3000ms -> 1500ms）
     gameState.bgCatInterval = setInterval(spawnBackgroundCat, 1500);
@@ -695,11 +777,8 @@ function initGame() {
         if (gameState.animatingCount > 0) return;
         addExtraTube();
     };
-    document.getElementById('start-new-btn').onclick = () => {
-        startGame(1);
-        if (!localStorage.getItem('nekozoroe_tutorial_seen')) setTimeout(showTutorial, 600);
-    };
     if (continueBtn) continueBtn.onclick = () => startGame(loadProgress());
+    document.getElementById('nickname-btn').onclick = () => showNicknameModal();
     document.getElementById('tutorial-next-btn').onclick = nextTutorialSlide;
 
     document.getElementById('update-now-btn').onclick = () => {

@@ -21,9 +21,9 @@
             <p id="start-rules">同じ柄の猫をタワーに集めよう！<br>タップして猫を移動させます。</p>
             <div id="start-btn-container">
                 <button id="start-continue-btn" class="hidden">つづきから</button>
-                <button id="start-new-btn">さいしょから</button>
                 <button id="time-attack-btn">⏱️ タイムアタック</button>
                 <button id="ranking-btn">🏆 ランキング</button>
+                <button id="nickname-btn">👤 ニックネーム設定</button>
             </div>
             <p class="bgm-notice">🎵 BGMはアプリを閉じても再生されます。<br>作業用BGMとしてもお楽しみください。</p>
         </div>
@@ -122,11 +122,12 @@
     <!-- Time Attack Result Overlay -->
     <div id="ta-result-overlay" class="overlay hidden">
         <div class="overlay-content">
-            <h2>🎉 タイムアタック完了！</h2>
+            <h2>⏱️ タイムアタック完了！</h2>
             <p>クリアタイム：<strong id="ta-result-time">--</strong></p>
+            <p id="ta-result-diff" class="ta-result-diff"></p>
+            <p id="ta-result-msg" class="ta-result-msg"></p>
             <div class="overlay-buttons">
-                <button id="ta-save-btn" class="primary-btn">記録を保存</button>
-                <button id="ta-skip-btn" class="secondary-btn">保存しない</button>
+                <button id="ta-home-btn" class="primary-btn">ホームへ戻る</button>
             </div>
         </div>
     </div>
@@ -160,6 +161,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    <script src="game.js?v=10.0"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-remote-config-compat.js"></script>
+    <script src="game.js?v=11.0"></script>
 </body>
 </html>

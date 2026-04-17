@@ -924,6 +924,19 @@ button:active {
     font-size: 0.9rem;
 }
 
+.ta-result-diff {
+    font-size: 0.95rem;
+    color: #555;
+    margin: 4px 0;
+}
+
+.ta-result-msg {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    margin: 6px 0 12px;
+}
+
 #nickname-input {
     width: 100%;
     padding: 12px;

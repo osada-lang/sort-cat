@@ -55,8 +55,8 @@ let gameState = {
     bgmStarted: false,
     isTransitioning: false,
     clearedTubes: [],
-    currentVersion: '1.0.7', // 現在のバージョン
-    latestVersion: '1.0.7', // Remote Configから起動時に取得
+    currentVersion: '1.0.8', // 現在のバージョン
+    latestVersion: '1.0.8', // Remote Configから起動時に取得
     bgCatInterval: null,
     adPrepared: false, // 広告の準備状態
     interstitialPrepared: false, // インタースティシャル広告の準備状態
@@ -73,10 +73,14 @@ const ADMOB_CONFIG = {
     interstitialIdIos: "ca-app-pub-9138341481603997/3540988472"
 };
 
-const bgm = new Audio('assets/sounds/bgm_v2.mp3');
-bgm.loop = true;
+const taBgm = new Audio('assets/sounds/bgm_v2.mp3');
+taBgm.loop = true;
+const normalBgm = new Audio('assets/sounds/bgm.mp3');
+normalBgm.loop = true;
 const homeBgm = new Audio('assets/sounds/home_bgm.mp3');
 homeBgm.loop = true;
+
+let currentBgm = normalBgm; // 現在再生中のBGMオブジェクト
 
 const meow = new Audio('assets/sounds/meow.mp3');
 
@@ -257,8 +261,35 @@ function isTubeComplete(index) {
 /** --- UTILS --- **/
 function playMeow() { if (!gameState.isMuted) { const a = new Audio('assets/sounds/meow.mp3'); a.playbackRate = 0.8 + Math.random() * 0.6; a.volume = 0.3; a.play().catch(() => {}); } }
 function playPurr() { if (!gameState.isMuted) { const a = new Audio('assets/sounds/purr.mp3'); a.volume = 0.7; a.play().catch(() => { if (window.Capacitor && window.Capacitor.Plugins.Haptics) window.Capacitor.Plugins.Haptics.vibrate(); }); } }
-function startAudio(force = false) { if ((force || !gameState.bgmStarted) && !gameState.isMuted) bgm.play().then(() => { gameState.bgmStarted = true; }).catch(() => {}); }
-function toggleMute() { gameState.isMuted = !gameState.isMuted; document.getElementById('mute-btn').innerText = gameState.isMuted ? '🔇' : '🔊'; if (gameState.isMuted) { bgm.pause(); homeBgm.pause(); } else if (gameState.bgmStarted) { bgm.play(); } else { homeBgm.play().catch(() => {}); } }
+function startAudio(force = false) { 
+    if ((force || !gameState.bgmStarted) && !gameState.isMuted) {
+        // モードに合わせてBGMを選択
+        const targetBgm = gameState.isTimeAttack ? taBgm : normalBgm;
+        
+        // 別のBGMが再生中なら停止
+        if (currentBgm && currentBgm !== targetBgm) {
+            currentBgm.pause();
+            currentBgm.currentTime = 0;
+        }
+        
+        currentBgm = targetBgm;
+        currentBgm.play().then(() => { 
+            gameState.bgmStarted = true; 
+        }).catch(() => {}); 
+    } 
+}
+function toggleMute() { 
+    gameState.isMuted = !gameState.isMuted; 
+    document.getElementById('mute-btn').innerText = gameState.isMuted ? '🔇' : '🔊'; 
+    if (gameState.isMuted) { 
+        if (currentBgm) currentBgm.pause(); 
+        homeBgm.pause(); 
+    } else if (gameState.bgmStarted) { 
+        if (currentBgm) currentBgm.play(); 
+    } else { 
+        homeBgm.play().catch(() => {}); 
+    } 
+}
 function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function saveProgress(l) { localStorage.setItem(SAVE_KEY, l.toString()); }
 function loadProgress() { const s = localStorage.getItem(SAVE_KEY); return s ? parseInt(s, 10) : 1; }
@@ -296,14 +327,16 @@ function stopTimer() {
 }
 
 function startTimeAttack() {
-    gameState.isTimeAttack = true;
-    startGame(1);
-    startTimer();
-    prepareInterstitialAd();
+    if (confirm('レベル10までのタイムを競うタイムアタックです。開始しますか？')) {
+        gameState.isTimeAttack = true;
+        startGame(1);
+        startTimer();
+        prepareInterstitialAd();
+    }
 }
 
 function goHome() {
-    bgm.pause();
+    if (currentBgm) currentBgm.pause();
     gameState.bgmStarted = false;
     if (!gameState.isMuted) homeBgm.play().catch(() => {});
     gameState.bgCatInterval = setInterval(spawnBackgroundCat, 1500);
@@ -363,9 +396,9 @@ async function showTimeAttackResult(elapsed) {
     if (prevBest !== null) {
         const diff = elapsed - prevBest;
         if (diff < 0) {
-            diffEl.textContent = `前回より ${formatTime(Math.abs(diff))} 速い！`;
+            diffEl.textContent = `自己ベストより ${formatTime(Math.abs(diff))} 速い！`;
         } else {
-            diffEl.textContent = `前回より ${formatTime(diff)} 遅い`;
+            diffEl.textContent = `自己ベストより ${formatTime(diff)} 遅い`;
         }
     } else {
         diffEl.textContent = '初めての記録！';
@@ -383,7 +416,8 @@ async function showTimeAttackResult(elapsed) {
     document.getElementById('ta-home-btn').onclick = async () => {
         overlay.classList.add('hidden');
         await showInterstitialAd();
-        goHome();
+        // タイムアタック終了後はランキング画面へ遷移
+        showRanking('time');
     };
 }
 
@@ -497,7 +531,7 @@ async function showRewardedAd() {
         
         // 広告終了後にBGMを再開
         if (!gameState.isMuted && gameState.bgmStarted) {
-            bgm.play().catch(() => {});
+            if (currentBgm) currentBgm.play().catch(() => {});
         }
 
         // 視聴完了後、次の広告をプリロードしておく
@@ -508,12 +542,13 @@ async function showRewardedAd() {
     } catch (e) { 
         // 失敗した場合でもBGMを再開
         if (!gameState.isMuted && gameState.bgmStarted) {
-            bgm.play().catch(() => {});
+            if (currentBgm) currentBgm.play().catch(() => {});
         }
         // 失敗した場合は再度プリロードを試みる
         prepareAd();
-        alert('広告の準備ができていません。少し待ってから再度お試しください。'); 
-        return false; 
+        // 広告アカウント停止中の一時対応：失敗しても報酬を付与する
+        console.warn("AdMob show failed, granting reward anyway during suspension.");
+        return true; 
     }
 }
 async function prepareInterstitialAd() {
@@ -703,7 +738,15 @@ async function initFirebase() {
 async function saveRanking(level, time = null) {
     if (!firebaseDb || !currentUid) return;
     try {
-        const nickname = localStorage.getItem('nekozoroe_nickname') || null;
+        let nickname = localStorage.getItem('nekozoroe_nickname') || null;
+        
+        // ニックネーム未登録の場合の案内
+        if (!nickname) {
+            if (confirm('ランキングに登録されました！ニックネームを登録して、自分の記録を公開しませんか？')) {
+                nickname = await showNicknameModal();
+            }
+        }
+
         const ref = firebaseDb.collection('rankings').doc(currentUid);
         const existing = await ref.get();
         const data = existing.exists ? existing.data() : {};
@@ -799,7 +842,11 @@ function initGame() {
         if (gameState.animatingCount > 0) return;
         addExtraTube();
     };
-    if (continueBtn) continueBtn.onclick = () => startGame(loadProgress());
+    if (continueBtn) continueBtn.onclick = () => {
+        if (confirm('現在のレベルからパズルを再開します。猫たちを揃えましょう！')) {
+            startGame(loadProgress());
+        }
+    };
     document.getElementById('nickname-btn').onclick = () => showNicknameModal();
     document.getElementById('tutorial-next-btn').onclick = nextTutorialSlide;
 
@@ -819,7 +866,11 @@ function initGame() {
     document.querySelectorAll('.ranking-tab').forEach(btn => { btn.onclick = () => loadRankingTab(btn.dataset.tab); });
 
     document.addEventListener('visibilitychange', () => {
-        if (document.hidden) bgm.pause(); else if (!gameState.isMuted && gameState.bgmStarted) bgm.play().catch(() => {});
+        if (document.hidden) {
+            if (currentBgm) currentBgm.pause();
+        } else if (!gameState.isMuted && gameState.bgmStarted) {
+            if (currentBgm) currentBgm.play().catch(() => {});
+        }
     });
     
     initAdMob();

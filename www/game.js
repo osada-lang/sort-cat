@@ -55,8 +55,8 @@ let gameState = {
     bgmStarted: false,
     isTransitioning: false,
     clearedTubes: [],
-    currentVersion: '1.0.8', // 現在のバージョン
-    latestVersion: '1.0.8', // Remote Configから起動時に取得
+    currentVersion: '1.0.9', // 現在のバージョン
+    latestVersion: '1.0.9', // Remote Configから起動時に取得
     bgCatInterval: null,
     adPrepared: false, // 広告の準備状態
     interstitialPrepared: false, // インタースティシャル広告の準備状態

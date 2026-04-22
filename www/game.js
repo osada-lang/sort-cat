@@ -335,6 +335,19 @@ function startTimeAttack() {
     }
 }
 
+function updateStartButton() {
+    const savedLevel = loadProgress();
+    const continueBtn = document.getElementById('start-continue-btn');
+    if (!continueBtn) return;
+
+    continueBtn.classList.remove('hidden');
+    if (savedLevel > 1) {
+        continueBtn.innerText = `つづきから (Level ${savedLevel})`;
+    } else {
+        continueBtn.innerText = 'ゲーム開始';
+    }
+}
+
 function goHome() {
     if (currentBgm) currentBgm.pause();
     gameState.bgmStarted = false;
@@ -342,9 +355,7 @@ function goHome() {
     gameState.bgCatInterval = setInterval(spawnBackgroundCat, 1500);
     document.getElementById('start-screen').classList.remove('fade-out');
     window.scrollTo(0, 0);
-    const savedLevel = loadProgress();
-    const continueBtn = document.getElementById('start-continue-btn');
-    if (savedLevel > 1 && continueBtn) { continueBtn.classList.remove('hidden'); continueBtn.innerText = `つづきから (Level ${savedLevel})`; }
+    updateStartButton();
 }
 
 function showNicknameModal() {
@@ -685,6 +696,7 @@ async function showBrandSplash() {
     splash.style.pointerEvents = 'none';
     splash.classList.add('fade-out');
     await wait(1000);
+    splash.style.display = 'none';
     splash.remove();
 }
 
@@ -776,83 +788,109 @@ function checkUpdate() {
 }
 
 function initGame() {
-    showBrandSplash();
-    
-    // 背景猫の生成開始（頻度アップ：3000ms -> 1500ms）
-    gameState.bgCatInterval = setInterval(spawnBackgroundCat, 1500);
-    for(let i=0; i<5; i++) setTimeout(spawnBackgroundCat, i * 500); // 最初は多めに（3匹 -> 5匹）
-    
-    preloadAssets();
-    const savedLevel = loadProgress();
-    const continueBtn = document.getElementById('start-continue-btn');
-    if (savedLevel > 1 && continueBtn) { continueBtn.classList.remove('hidden'); continueBtn.innerText = `つづきから (Level ${savedLevel})`; }
-    
-    // UI Event Listeners
-    document.getElementById('reset-btn').onclick = () => { 
-        if (gameState.animatingCount > 0) return;
-        if(confirm('現在のレベルを最初からやり直しますか？')) { 
-            // 初期配置を復元する
-            gameState.tubes = JSON.parse(JSON.stringify(gameState.initialTubes));
-            gameState.selectedTubeIndex = null;
-            gameState.history = [];
-            gameState.clearedTubes = [];
-            renderTubes(); 
-        } 
-    };
-    document.getElementById('undo-btn').onclick = () => { 
-        if (gameState.animatingCount > 0) return;
-        if(gameState.history.length > 0) { 
-            const prevState = gameState.history[gameState.history.length - 1];
-            // 履歴の状態と今の状態を比べて、タワーが減るかどうかチェック
-            if (prevState.length < gameState.tubes.length) {
-                if (!confirm("追加したタワーが消えてしまいますが、戻してよろしいですか？")) {
-                    return;
+    try {
+        console.log('Initializing UI elements...');
+        showBrandSplash();
+        
+        // 背景猫の生成開始（頻度アップ：3000ms -> 1500ms）
+        gameState.bgCatInterval = setInterval(spawnBackgroundCat, 1500);
+        for(let i=0; i<5; i++) setTimeout(spawnBackgroundCat, i * 500); // 最初は多めに
+        
+        preloadAssets();
+        updateStartButton();
+        const continueBtn = document.getElementById('start-continue-btn');
+        
+        // UI Event Listeners
+        const setOnClick = (id, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.onclick = fn;
+            else console.warn(`Element not found: ${id}`);
+        };
+
+        setOnClick('reset-btn', () => { 
+            if (gameState.animatingCount > 0) return;
+            if(confirm('現在のレベルを最初からやり直しますか？')) { 
+                gameState.tubes = JSON.parse(JSON.stringify(gameState.initialTubes));
+                gameState.selectedTubeIndex = null;
+                gameState.history = [];
+                gameState.clearedTubes = [];
+                renderTubes(); 
+            } 
+        });
+
+        setOnClick('undo-btn', () => { 
+            if (gameState.animatingCount > 0) return;
+            if(gameState.history.length > 0) { 
+                const prevState = gameState.history[gameState.history.length - 1];
+                if (prevState.length < gameState.tubes.length) {
+                    if (!confirm("追加したタワーが消えてしまいますが、戻してよろしいですか？")) return;
                 }
+                gameState.tubes = gameState.history.pop(); 
+                renderTubes(); 
             }
-            gameState.tubes = gameState.history.pop(); 
-            renderTubes(); 
-        }
-    };
-    document.getElementById('home-btn').onclick = () => {
-        if (gameState.animatingCount > 0) return;
-        if (gameState.isTimeAttack) { stopTimer(); gameState.isTimeAttack = false; }
-        goHome();
-    };
-    document.getElementById('mute-btn').onclick = () => toggleMute();
-    document.getElementById('add-tube-btn').onclick = () => {
-        if (gameState.animatingCount > 0) return;
-        addExtraTube();
-    };
-    if (continueBtn) continueBtn.onclick = () => {
-        if (confirm('現在のレベルからパズルを再開します。猫たちを揃えましょう！')) {
-            startGame(loadProgress());
-        }
-    };
-    document.getElementById('nickname-btn').onclick = () => showNicknameModal();
-    document.getElementById('tutorial-next-btn').onclick = nextTutorialSlide;
+        });
 
-    document.getElementById('update-now-btn').onclick = () => {
-        const url = /iPhone|iPad|iPod/.test(navigator.userAgent) 
-            ? 'https://apps.apple.com/app/id6761840479' 
-            : 'https://play.google.com/store/apps/details?id=com.jirachi.nekozoroe';
-        window.open(url, '_blank');
-    };
-    
-    document.getElementById('update-later-btn').onclick = () => {
-        document.getElementById('update-overlay').classList.add('hidden');
-    };
-    document.getElementById('time-attack-btn').onclick = () => startTimeAttack();
-    document.getElementById('ranking-btn').onclick = () => showRanking('level');
-    document.getElementById('ranking-close-btn').onclick = () => document.getElementById('ranking-overlay').classList.add('hidden');
-    document.querySelectorAll('.ranking-tab').forEach(btn => { btn.onclick = () => loadRankingTab(btn.dataset.tab); });
+        setOnClick('home-btn', () => {
+            if (gameState.animatingCount > 0) return;
+            if (gameState.isTimeAttack) { stopTimer(); gameState.isTimeAttack = false; }
+            goHome();
+        });
 
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            if (currentBgm) currentBgm.pause();
-        } else if (!gameState.isMuted && gameState.bgmStarted) {
-            if (currentBgm) currentBgm.play().catch(() => {});
+        setOnClick('mute-btn', () => toggleMute());
+        
+        setOnClick('add-tube-btn', () => {
+            if (gameState.animatingCount > 0) return;
+            addExtraTube();
+        });
+
+        if (continueBtn) {
+            continueBtn.onclick = () => {
+                const savedLevel = loadProgress();
+                const msg = savedLevel > 1 
+                    ? '現在のレベルからパズルを再開します。猫たちを揃えましょう！' 
+                    : 'パズルを開始します。猫たちを揃えましょう！';
+                if (confirm(msg)) startGame(savedLevel);
+            };
         }
-    });
+
+        setOnClick('nickname-btn', () => showNicknameModal());
+        setOnClick('tutorial-next-btn', nextTutorialSlide);
+
+        setOnClick('update-now-btn', () => {
+            const url = /iPhone|iPad|iPod/.test(navigator.userAgent) 
+                ? 'https://apps.apple.com/app/id6761840479' 
+                : 'https://play.google.com/store/apps/details?id=com.jirachi.nekozoroe';
+            window.open(url, '_blank');
+        });
+        
+        setOnClick('update-later-btn', () => {
+            const el = document.getElementById('update-overlay');
+            if (el) el.classList.add('hidden');
+        });
+
+        setOnClick('time-attack-btn', () => startTimeAttack());
+        setOnClick('ranking-btn', () => showRanking('level'));
+        setOnClick('ranking-close-btn', () => {
+            const el = document.getElementById('ranking-overlay');
+            if (el) el.classList.add('hidden');
+        });
+
+        document.querySelectorAll('.ranking-tab').forEach(btn => { 
+            btn.onclick = () => loadRankingTab(btn.dataset.tab); 
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (currentBgm) currentBgm.pause();
+            } else if (!gameState.isMuted && gameState.bgmStarted) {
+                if (currentBgm) currentBgm.play().catch(() => {});
+            }
+        });
+        
+        console.log('UI initialization completed.');
+    } catch (e) {
+        console.error('UI Initialization error:', e);
+    }
 }
 
 /** --- INITIALIZATION SEQUENCE --- **/
@@ -880,7 +918,7 @@ async function initializeAppSequence() {
             const status = await AppTrackingTransparency.getStatus();
             console.log('Current ATT status:', status);
             
-            if (status === 'notDetermined') {
+            if (status === 'notDetermined' || status === 'NOT_DETERMINED') {
                 // 3. ダイアログを表示してユーザーの選択を待つ
                 console.log('Requesting ATT permission...');
                 await AppTrackingTransparency.requestPermission();

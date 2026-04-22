@@ -472,31 +472,12 @@ function nextTutorialSlide() {
 async function initAdMob() {
     try {
         const Capacitor = window.Capacitor;
-        const { AdMob, AppTrackingTransparency } = (Capacitor && Capacitor.Plugins) ? Capacitor.Plugins : {};
+        const { AdMob } = (Capacitor && Capacitor.Plugins) ? Capacitor.Plugins : {};
         if (AdMob) {
-            // AdMob初期化（ATTリクエストなし）
+            // AdMob初期化
             await AdMob.initialize();
-            
-            // iOSの場合、ATT許可取得後に広告をプリロード
-            if (Capacitor.getPlatform() === 'ios' && AppTrackingTransparency) {
-                setTimeout(async () => {
-                    try {
-                        const status = await AppTrackingTransparency.getStatus();
-                        if (status === 'notDetermined') {
-                            await AppTrackingTransparency.requestPermission();
-                        }
-                        // ATT処理完了後に広告プリロード
-                        prepareAd();
-                    } catch (e) {
-                        console.error('ATT request failed:', e);
-                        // エラー時も広告プリロードを試行
-                        prepareAd();
-                    }
-                }, 2000);
-            } else {
-                // Androidの場合は即座にプリロード
-                prepareAd();
-            }
+            // 広告のプリロード
+            prepareAd();
         }
     } catch (e) {
         console.error('AdMob init failed:', e);
@@ -872,9 +853,49 @@ function initGame() {
             if (currentBgm) currentBgm.play().catch(() => {});
         }
     });
-    
-    initAdMob();
-    initFirebase();
+}
+
+/** --- INITIALIZATION SEQUENCE --- **/
+async function initializeAppSequence() {
+    const Capacitor = window.Capacitor;
+    if (!Capacitor) {
+        // ブラウザ環境などの場合は即座に初期化
+        initAdMob();
+        initFirebase();
+        return;
+    }
+
+    const platform = Capacitor.getPlatform();
+    const { AppTrackingTransparency } = Capacitor.Plugins || {};
+
+    if (platform === 'ios' && AppTrackingTransparency) {
+        // iOSの場合、トラッキングデータの収集（初期化）前にATTリクエストを最優先で行う
+        console.log('iOS detected: Starting ATT request sequence...');
+        
+        // 1. OSの準備が整うまで少し待機
+        await wait(1500);
+
+        try {
+            // 2. 現在の状態を確認
+            const status = await AppTrackingTransparency.getStatus();
+            console.log('Current ATT status:', status);
+            
+            if (status === 'notDetermined') {
+                // 3. ダイアログを表示してユーザーの選択を待つ
+                console.log('Requesting ATT permission...');
+                await AppTrackingTransparency.requestPermission();
+                console.log('ATT permission request completed.');
+            }
+        } catch (e) {
+            console.error('ATT flow error:', e);
+        }
+    }
+
+    // ATTの処理が完了（またはiOS以外）してから、AdMobとFirebaseを初期化する
+    console.log('Proceeding with AdMob and Firebase initialization.');
+    await initAdMob();
+    await initFirebase();
 }
 
 initGame();
+initializeAppSequence();

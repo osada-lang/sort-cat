@@ -62,7 +62,8 @@ let gameState = {
     interstitialPrepared: false, // インタースティシャル広告の準備状態
     isTimeAttack: false,
     timeAttackStart: null,
-    timeAttackInterval: null
+    timeAttackInterval: null,
+    shouldGoHomeAfterRanking: false // タイムアタック後にホームへ戻るためのフラグ
 };
 
 const SAVE_KEY = 'nekozoroe_level_v1';
@@ -363,9 +364,17 @@ function showNicknameModal() {
         const modal = document.getElementById('nickname-modal');
         const input = document.getElementById('nickname-input');
         const saveBtn = document.getElementById('nickname-save-btn');
+        const cancelBtn = document.getElementById('nickname-cancel-btn');
         const saved = localStorage.getItem('nekozoroe_nickname');
         if (saved) input.value = saved;
         modal.classList.remove('hidden');
+
+        const cleanup = () => {
+            saveBtn.onclick = null;
+            if (cancelBtn) cancelBtn.onclick = null;
+            modal.classList.add('hidden');
+        };
+
         const handleSave = () => {
             const name = input.value.trim();
             if (!name) return;
@@ -376,10 +385,17 @@ function showNicknameModal() {
                     { merge: true }
                 ).catch(() => {});
             }
-            modal.classList.add('hidden');
+            cleanup();
             resolve(name);
         };
+
+        const handleCancel = () => {
+            cleanup();
+            resolve(saved || null);
+        };
+
         saveBtn.onclick = handleSave;
+        if (cancelBtn) cancelBtn.onclick = handleCancel;
     });
 }
 
@@ -427,7 +443,8 @@ async function showTimeAttackResult(elapsed) {
     document.getElementById('ta-home-btn').onclick = async () => {
         overlay.classList.add('hidden');
         await showInterstitialAd();
-        // タイムアタック終了後はランキング画面へ遷移
+        // タイムアタック終了後はランキング画面へ遷移し、閉じたらホームへ
+        gameState.shouldGoHomeAfterRanking = true;
         showRanking('time');
     };
 }
@@ -735,7 +752,7 @@ async function saveRanking(level, time = null) {
         
         // ニックネーム未登録の場合の案内
         if (!nickname) {
-            if (confirm('ランキングに登録されました！ニックネームを登録して、自分の記録を公開しませんか？')) {
+            if (confirm('ランキングに登録されました！ニックネームを登録して、自分の記録を公開しませんか？（あとからホーム画面で自由に変更できます）')) {
                 nickname = await showNicknameModal();
             }
         }
@@ -873,6 +890,12 @@ function initGame() {
         setOnClick('ranking-close-btn', () => {
             const el = document.getElementById('ranking-overlay');
             if (el) el.classList.add('hidden');
+            
+            // タイムアタック後などの場合、ホームに戻る
+            if (gameState.shouldGoHomeAfterRanking) {
+                gameState.shouldGoHomeAfterRanking = false;
+                goHome();
+            }
         });
 
         document.querySelectorAll('.ranking-tab').forEach(btn => { 

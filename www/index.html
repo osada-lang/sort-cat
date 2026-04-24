@@ -16,8 +16,9 @@
     <div id="start-screen">
         <div id="background-cats-container"></div>
         <div class="start-content">
-            <span class="cat-icon-large">🐾</span>
-            <h1 id="start-title">ねこぞろえ</h1>
+            <div id="start-feature-container">
+                <img src="assets/images/feature_graphic_v2.png" alt="ねこぞろえ" id="start-feature-img">
+            </div>
             <p id="start-rules">同じ柄の猫をタワーに集めよう！<br>タップして猫を移動させます。</p>
             <div id="start-btn-container">
                 <button id="start-continue-btn" class="hidden">つづきから</button>
@@ -137,9 +138,11 @@
         <div class="overlay-content">
             <h2>ニックネームを入力</h2>
             <p>ランキングに表示される名前です（最大8文字）</p>
+            <p class="nickname-notice">※あとからホーム画面でいつでも変更できます。<br>変更すると過去のランキング記録もすべて更新されます。</p>
             <input type="text" id="nickname-input" placeholder="ねこ好き" maxlength="8">
             <div class="overlay-buttons">
                 <button id="nickname-save-btn" class="primary-btn">けってい</button>
+                <button id="nickname-cancel-btn" class="secondary-btn">もどる</button>
             </div>
         </div>
     </div>
